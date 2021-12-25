@@ -1,4 +1,4 @@
-use serde::{de, ser};
+use serde::de;
 use std::fmt::Display;
 use thiserror::Error;
 
@@ -16,29 +16,35 @@ pub enum Error {
 	#[error("Unexpected end of input")]
 	Eof,
 
-	/// This error will be returned if an opening s-expr was expected, but something else was
-	/// found at the input.
+	/// This error will be returned if an opening s-expr was expected, but some other token was
+	/// found.
 	#[error("Expected s-expr")]
 	ExpectedSExpr,
 
 	/// This error will be returned if an opening s-expr with a certain name was expected, but
-	/// something else was found at the input.
+	/// some other token was found.
 	#[error("Expected s-expr identifier {0}")]
 	ExpectedSExprIdentifier(&'static str),
 
 	/// This error will be returned if the end of the s-expr was expected, but some other token
 	/// was found.
 	#[error("Expected end of expression")]
-	ExpectedEoe
+	ExpectedEoe,
+
+	/// This error will be returned if an identifier was expected, but some other token was found.
+	#[error("Expected identifier")]
+	ExpectedIdentifier,
+
+	/// This error will be returned if a number was expected, but some other token was found.
+	#[error("Expected number")]
+	ExpectedNumber,
+
+	/// This error will be returned if a string was expected, but some other token was found.
+	#[error("Expected string")]
+	ExpectedString
 }
 
 impl de::Error for Error {
-	fn custom<T: Display>(msg: T) -> Self {
-		Self::Message(msg.to_string())
-	}
-}
-
-impl ser::Error for Error {
 	fn custom<T: Display>(msg: T) -> Self {
 		Self::Message(msg.to_string())
 	}

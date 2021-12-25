@@ -1,8 +1,12 @@
-use crate::Error;
+use paste::paste;
 use serde::{
 	de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor},
 	forward_to_deserialize_any, Deserialize
 };
+use std::{borrow::Cow, fmt::Display, str::FromStr};
+
+mod error;
+pub use error::Error;
 
 pub struct Deserializer<'de> {
 	input: &'de str
@@ -63,7 +67,7 @@ impl<'de> Deserializer<'de> {
 			.map(|ch| ch.len_utf8())
 			.sum();
 		if len == 0 {
-			return Err(Error::Eof);
+			return Err(Error::ExpectedIdentifier);
 		}
 		Ok(&self.input[paren..paren + len])
 	}
@@ -74,6 +78,84 @@ impl<'de> Deserializer<'de> {
 		}
 		self.input = &self.input[len..];
 		Ok(())
+	}
+
+	fn parse_number<T>(&mut self) -> Result<T>
+	where
+		T: FromStr,
+		T::Err: Display
+	{
+		let len = self
+			.input
+			.chars()
+			.take_while(|ch| ch.is_ascii_digit() || *ch == '-' || *ch == '.')
+			.map(|ch| ch.len_utf8())
+			.sum();
+		if len == 0 {
+			return Err(Error::ExpectedNumber);
+		}
+		let number = &self.input[..len];
+		let number = number
+			.parse()
+			.map_err(|err: T::Err| Error::Message(err.to_string()))?;
+		self.input = &self.input[len..];
+		Ok(number)
+	}
+
+	fn parse_string(&mut self) -> Result<Cow<'de, str>> {
+		match self.peek_char()? {
+			'(' => Err(Error::ExpectedString),
+
+			'"' => {
+				self.consume('"'.len_utf8())?;
+				let mut value = String::new();
+				loop {
+					let len: usize = self
+						.input
+						.chars()
+						.take_while(|ch| *ch != '"')
+						.map(|ch| ch.len_utf8())
+						.sum();
+					if len >= self.input.len() {
+						return Err(Error::Eof);
+					}
+
+					let mut start_idx = value.chars().count();
+					value += &self.input[..len + 1];
+					self.input = &self.input[len + 1..];
+					while let Some(idx) = (&value[start_idx..]).find(r"\\") {
+						let idx = start_idx + idx;
+						value.replace_range(idx..idx + 2, r"\");
+						start_idx = idx + 1;
+					}
+
+					if value.ends_with(r#"\""#) && start_idx < value.len() - 1 {
+						value.remove(value.len() - 2);
+					} else if value.ends_with(r#"""#) {
+						value.remove(value.len() - 1);
+						break;
+					} else {
+						unreachable!();
+					}
+				}
+				Ok(value.into())
+			},
+
+			_ => {
+				let len = self
+					.input
+					.chars()
+					.take_while(|ch| !ch.is_ascii_whitespace() && *ch != ')')
+					.map(|ch| ch.len_utf8())
+					.sum();
+				if len == 0 {
+					return Err(Error::Eof);
+				}
+				let value = &self.input[..len];
+				self.input = &self.input[len..];
+				Ok(value.into())
+			}
+		}
 	}
 }
 
@@ -131,8 +213,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 
 	forward_to_deserialize_any! {
 		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-		bytes byte_buf option unit seq tuple
-		map enum identifier ignored_any
+		bytes byte_buf option unit seq tuple map enum identifier ignored_any
 	}
 }
 
@@ -224,6 +305,7 @@ impl<'a, 'de> MapAccess<'de> for SExpr<'a, 'de> {
 			}
 		}
 
+		self.index += 1;
 		seed.deserialize(Field::new(self.de))
 	}
 }
@@ -335,6 +417,21 @@ impl<'a, 'de> Field<'a, 'de> {
 	}
 }
 
+macro_rules! forward_to_parse_number {
+	($($ident:ident)+) => {
+		$(
+			paste! {
+				fn [<deserialize_ $ident>]<V>(self, visitor: V) -> Result<V::Value>
+				where
+					V: Visitor<'de>
+				{
+					visitor.[<visit_ $ident>](self.de.parse_number()?)
+				}
+			}
+		)+
+	};
+}
+
 impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 	type Error = Error;
 
@@ -343,6 +440,32 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		V: Visitor<'de>
 	{
 		unimplemented!()
+	}
+
+	fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		self.deserialize_string(visitor)
+	}
+
+	fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		let value = self.de.parse_string()?;
+		match value {
+			Cow::Borrowed(value) => visitor.visit_borrowed_str(value),
+			Cow::Owned(value) => visitor.visit_string(value)
+		}
+	}
+
+	fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		// If we arrived at this point in the code, there's no way for the option to be None
+		visitor.visit_some(self)
 	}
 
 	fn deserialize_struct<V>(
@@ -387,9 +510,11 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		visitor.visit_seq(SExprTuple::new(self.de, name)?)
 	}
 
+	forward_to_parse_number! {
+		i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64
+	}
+
 	forward_to_deserialize_any! {
-		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-		bytes byte_buf option unit seq tuple
-		map enum identifier ignored_any
+		bool char bytes byte_buf unit seq tuple map enum identifier ignored_any
 	}
 }
