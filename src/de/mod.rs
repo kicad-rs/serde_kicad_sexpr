@@ -294,11 +294,13 @@ impl<'a, 'de> MapAccess<'de> for SExpr<'a, 'de> {
 		}
 		if let Some(identifier) = self.de.peek_identifier() {
 			if self.fields[self.index] == identifier {
+				self.de.consume(identifier.len())?;
 				self.index += 1;
 				return seed.deserialize(TrueField);
 			}
 			for i in self.index + 1..self.fields.len() {
 				if self.fields[i] == identifier {
+					self.de.consume(identifier.len())?;
 					self.skip_to = Some(i);
 					self.index += 1;
 					return seed.deserialize(MissingField);
@@ -407,7 +409,8 @@ impl<'de> de::Deserializer<'de> for MissingField {
 	}
 }
 
-/// A non-boolean field.
+/// A field whose value does not match its ident. This means that if a boolean gets requested,
+/// we must return false without touching the input.
 struct Field<'a, 'de> {
 	de: &'a mut Deserializer<'de>
 }
@@ -456,6 +459,13 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 			'(' => Err(Error::MissingSExprInfo),
 			_ => self.deserialize_string(visitor)
 		}
+	}
+
+	fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		visitor.visit_bool(false)
 	}
 
 	fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
@@ -543,7 +553,7 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 	}
 
 	forward_to_deserialize_any! {
-		bool char bytes byte_buf unit seq tuple map identifier ignored_any
+		char bytes byte_buf unit seq tuple map identifier ignored_any
 	}
 }
 

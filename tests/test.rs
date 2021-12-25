@@ -108,18 +108,50 @@ enum PadShape {
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename = "drill")]
+struct Drill {
+	oval: bool,
+	drill1: f32,
+	drill2: Option<f32>
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename = "pad")]
 struct Pad {
 	index: Literal,
 	ty: PadType,
 	shape: PadShape,
 	at: Position,
-	size: Size
+	size: Size,
+	drill: Option<Drill>,
+	layers: Vec<String>
 }
 
 #[test]
-fn deserialize_pad() {
-	let input = "(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27))";
+fn deserialize_pad_without_drill() {
+	let input = "(pad 1 smd rect (at 0 0) (size 1.27 1.27) (layers F.Cu))";
+	let expected = Pad {
+		index: 1.into(),
+		ty: PadType::Smd,
+		shape: PadShape::Rect,
+		at: Position {
+			x: 0.0,
+			y: 0.0,
+			rot: None
+		},
+		size: Size {
+			width: 1.27,
+			height: 1.27
+		},
+		drill: None,
+		layers: vec!["F.Cu".to_owned()]
+	};
+	assert_eq_parsed(input, expected);
+}
+
+#[test]
+fn deserialize_pad_with_drill() {
+	let input = "(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27) (drill 0.635) (layers F.Cu))";
 	let expected = Pad {
 		index: 1.into(),
 		ty: PadType::ThroughHole,
@@ -132,7 +164,40 @@ fn deserialize_pad() {
 		size: Size {
 			width: 1.27,
 			height: 1.27
-		}
+		},
+		drill: Some(Drill {
+			oval: false,
+			drill1: 0.635,
+			drill2: None
+		}),
+		layers: vec!["F.Cu".to_owned()]
+	};
+	assert_eq_parsed(input, expected);
+}
+
+#[test]
+fn deserialize_pad_with_oval_drill() {
+	let input =
+		"(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27) (drill oval 0.635 0.847) (layers F.Cu))";
+	let expected = Pad {
+		index: 1.into(),
+		ty: PadType::ThroughHole,
+		shape: PadShape::Rect,
+		at: Position {
+			x: 0.0,
+			y: 0.0,
+			rot: None
+		},
+		size: Size {
+			width: 1.27,
+			height: 1.27
+		},
+		drill: Some(Drill {
+			oval: true,
+			drill1: 0.635,
+			drill2: Some(0.847)
+		}),
+		layers: vec!["F.Cu".to_owned()]
 	};
 	assert_eq_parsed(input, expected);
 }
