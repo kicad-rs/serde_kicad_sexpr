@@ -259,6 +259,7 @@ impl<'a, 'de> MapAccess<'de> for SExpr<'a, 'de> {
 	{
 		self.de.skip_whitespace();
 		if self.skip_to.is_none() && self.de.peek_char()? == ')' {
+			self.de.consume(1)?;
 			// technically we're done, but there could be booleans that are false, so we'll
 			// deserialize those as None/false eventhough they don't exist in the input.
 			self.skip_to = Some(self.index + 1);
@@ -435,11 +436,26 @@ macro_rules! forward_to_parse_number {
 impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 	type Error = Error;
 
-	fn deserialize_any<V>(self, _: V) -> Result<V::Value>
+	fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
 	where
 		V: Visitor<'de>
 	{
-		unimplemented!()
+		match self.de.peek_char()? {
+			ch @ '0'..='9' | ch @ '-' | ch @ '.' => match self.de.input.find('.') {
+				Some(idx)
+					if (&self.de.input[..idx]).contains(|ch: char| ch.is_ascii_whitespace()) =>
+				{
+					if ch == '-' {
+						self.deserialize_i64(visitor)
+					} else {
+						self.deserialize_u64(visitor)
+					}
+				},
+				_ => self.deserialize_f32(visitor)
+			},
+			'(' => Err(Error::MissingSExprInfo),
+			_ => self.deserialize_string(visitor)
+		}
 	}
 
 	fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>

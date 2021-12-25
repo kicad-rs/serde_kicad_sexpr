@@ -1,5 +1,6 @@
 use pretty_assertions::assert_eq;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_sexpr::Literal;
 use std::fmt::Debug;
 
 fn assert_eq_parsed<T>(input: &str, expected: T)
@@ -53,10 +54,10 @@ struct Position {
 
 #[test]
 fn deserialize_position_without_rot() {
-	let input = "(at 1.23 4.56)";
+	let input = "(at 1.23 -4.56)";
 	let expected = Position {
 		x: 1.23,
-		y: 4.56,
+		y: -4.56,
 		rot: None
 	};
 	assert_eq_parsed(input, expected);
@@ -64,11 +65,58 @@ fn deserialize_position_without_rot() {
 
 #[test]
 fn deserialize_position_with_rot() {
-	let input = "(at 1.23 4.56 -90)";
+	let input = "(at 1.23 -4.56 -90)";
 	let expected = Position {
 		x: 1.23,
-		y: 4.56,
+		y: -4.56,
 		rot: Some(-90)
+	};
+	assert_eq_parsed(input, expected);
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename = "size")]
+struct Size {
+	width: f32,
+	height: f32
+}
+
+#[test]
+fn deserialize_size() {
+	let input = "(size 1.23 4.56)";
+	let expected = Size {
+		width: 1.23,
+		height: 4.56
+	};
+	assert_eq_parsed(input, expected);
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename = "pad")]
+struct Pad {
+	index: Literal,
+	ty: String,
+	shape: String,
+	at: Position,
+	size: Size
+}
+
+#[test]
+fn deserialize_pad() {
+	let input = "(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27))";
+	let expected = Pad {
+		index: 1.into(),
+		ty: "thru-hole".to_owned(),
+		shape: "rect".to_owned(),
+		at: Position {
+			x: 0.0,
+			y: 0.0,
+			rot: None
+		},
+		size: Size {
+			width: 1.27,
+			height: 1.27
+		}
 	};
 	assert_eq_parsed(input, expected);
 }

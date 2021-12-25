@@ -41,7 +41,12 @@ pub enum Error {
 
 	/// This error will be returned if a string was expected, but some other token was found.
 	#[error("Expected string")]
-	ExpectedString
+	ExpectedString,
+
+	/// This error will be returned if an s-expr is found, but its name (and fields) were not
+	/// supplied to the deserializer (e.g. `deserialize_any` was called).
+	#[error("Missing s-expr type info")]
+	MissingSExprInfo
 }
 
 impl de::Error for Error {
