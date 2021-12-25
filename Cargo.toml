@@ -1,0 +1,23 @@
+# -*- eval: (cargo-minor-mode 1) -*-
+
+[package]
+# metadata
+name = "serde_sexpr"
+description = "KiCAD v6 File Format"
+license = "Apache-2.0 OR LGPL-3.0"
+
+# version
+version = "0.0.0"
+publish = false
+
+# compiler info
+edition = "2021"
+
+[dependencies]
+itoa = "1.0"
+ryu = "1.0"
+serde = "1.0.132"
+
+[dev-dependencies]
+indoc = "1.0"
+pretty_assertions = "1.0"
