@@ -1,6 +1,6 @@
 use paste::paste;
 use serde::{
-	de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor},
+	de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor},
 	forward_to_deserialize_any, Deserialize
 };
 use std::{borrow::Cow, fmt::Display, str::FromStr};
@@ -526,11 +526,67 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		visitor.visit_seq(SExprTuple::new(self.de, name)?)
 	}
 
+	fn deserialize_enum<V>(
+		self,
+		_name: &'static str,
+		_variants: &'static [&'static str],
+		visitor: V
+	) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		visitor.visit_enum(self)
+	}
+
 	forward_to_parse_number! {
 		i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64
 	}
 
 	forward_to_deserialize_any! {
-		bool char bytes byte_buf unit seq tuple map enum identifier ignored_any
+		bool char bytes byte_buf unit seq tuple map identifier ignored_any
+	}
+}
+
+impl<'a, 'de> EnumAccess<'de> for Field<'a, 'de> {
+	type Error = Error;
+	type Variant = UnitVariant;
+
+	fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant)>
+	where
+		V: DeserializeSeed<'de>
+	{
+		Ok((seed.deserialize(self)?, UnitVariant))
+	}
+}
+
+/// This will deserialize only unit variants.
+struct UnitVariant;
+
+impl<'de> VariantAccess<'de> for UnitVariant {
+	type Error = Error;
+
+	fn unit_variant(self) -> Result<()> {
+		Ok(())
+	}
+
+	fn newtype_variant_seed<T>(self, _seed: T) -> Result<T::Value>
+	where
+		T: DeserializeSeed<'de>
+	{
+		Err(Error::NonUnitEnumVariant)
+	}
+
+	fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		Err(Error::NonUnitEnumVariant)
+	}
+
+	fn struct_variant<V>(self, _fields: &'static [&'static str], _visitor: V) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		Err(Error::NonUnitEnumVariant)
 	}
 }

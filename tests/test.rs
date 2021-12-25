@@ -92,11 +92,27 @@ fn deserialize_size() {
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
+enum PadType {
+	#[serde(rename = "thru-hole")]
+	ThroughHole,
+
+	#[serde(rename = "smd")]
+	Smd
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
+enum PadShape {
+	Circle,
+	Rect
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename = "pad")]
 struct Pad {
 	index: Literal,
-	ty: String,
-	shape: String,
+	ty: PadType,
+	shape: PadShape,
 	at: Position,
 	size: Size
 }
@@ -106,8 +122,8 @@ fn deserialize_pad() {
 	let input = "(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27))";
 	let expected = Pad {
 		index: 1.into(),
-		ty: "thru-hole".to_owned(),
-		shape: "rect".to_owned(),
+		ty: PadType::ThroughHole,
+		shape: PadShape::Rect,
 		at: Position {
 			x: 0.0,
 			y: 0.0,

@@ -46,7 +46,11 @@ pub enum Error {
 	/// This error will be returned if an s-expr is found, but its name (and fields) were not
 	/// supplied to the deserializer (e.g. `deserialize_any` was called).
 	#[error("Missing s-expr type info")]
-	MissingSExprInfo
+	MissingSExprInfo,
+
+	/// This error will be returned when attempting to deserialize a non-unit enum variant.
+	#[error("Non-unit enum variants are not supported")]
+	NonUnitEnumVariant
 }
 
 impl de::Error for Error {
