@@ -8,7 +8,7 @@ pub enum Error {
 	Message(String),
 
 	/// This error will be returned if you request to deserialize anything but a struct at root
-	/// level
+	/// level.
 	#[error("Expected to deserialize a struct at root level")]
 	ExpectedStruct,
 

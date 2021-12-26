@@ -1,48 +1,86 @@
+use once_cell::sync::Lazy as SyncLazy;
 use pretty_assertions::assert_eq;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_sexpr::{deserialize_option, Literal};
 use std::fmt::Debug;
 
-fn assert_eq_parsed<T>(input: &str, expected: T)
+fn assert_eq_parsed<T>(input: &str, expected: &T)
 where
 	T: Debug + DeserializeOwned + PartialEq
 {
 	let parsed: T = serde_sexpr::from_str(input).expect("Failed to parse input");
-	assert_eq!(parsed, expected);
+	assert_eq!(&parsed, expected);
 }
+
+fn assert_eq_written<T>(input: &T, expected: &str)
+where
+	T: ?Sized + Serialize
+{
+	let written = serde_sexpr::to_string(input).expect("Failed to write input");
+	assert_eq!(written.as_str(), expected);
+}
+
+// ################################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename = "locked")]
 struct Locked;
 
+const LOCKED_STR: &str = "(locked)";
+static LOCKED_VAL: Locked = Locked;
+
 #[test]
 fn deserialize_locked() {
-	let input = "(locked)";
-	let expected = Locked;
-	assert_eq_parsed(input, expected);
+	assert_eq_parsed(LOCKED_STR, &LOCKED_VAL);
 }
+
+#[test]
+fn serialize_locked() {
+	assert_eq_written(&LOCKED_VAL, LOCKED_STR);
+}
+
+// ################################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename = "attr")]
 struct Attribute(String);
 
+const ATTRIBUTE_STR: &str = "(attr smd)";
+static ATTRIBUTE_VAL: SyncLazy<Attribute> = SyncLazy::new(|| Attribute("smd".to_owned()));
+
 #[test]
 fn deserialize_attr() {
-	let input = "(attr smd)";
-	let expected = Attribute("smd".to_owned());
-	assert_eq_parsed(input, expected);
+	assert_eq_parsed(ATTRIBUTE_STR, &*ATTRIBUTE_VAL);
 }
+
+#[test]
+fn serialize_attr() {
+	assert_eq_written(&*ATTRIBUTE_VAL, ATTRIBUTE_STR);
+}
+
+// ################################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename = "descr")]
 struct Description(String);
 
+const DESCRIPTION_STR: &str =
+	r#"(descr "Hello \"World\", this \"\\\" is an amazing backspace! \\")"#;
+const DESCRIPTION_VAL: SyncLazy<Description> = SyncLazy::new(|| {
+	Description(r#"Hello "World", this "\" is an amazing backspace! \"#.to_owned())
+});
+
 #[test]
 fn deserialize_descr() {
-	let input = r#"(descr "Hello \"World\", this \"\\\" is an amazing backspace! \\")"#;
-	let expected = Description(r#"Hello "World", this "\" is an amazing backspace! \"#.to_owned());
-	assert_eq_parsed(input, expected);
+	assert_eq_parsed(DESCRIPTION_STR, &*DESCRIPTION_VAL);
 }
+
+#[test]
+fn serialize_descr() {
+	assert_eq_written(&*DESCRIPTION_VAL, DESCRIPTION_STR);
+}
+
+// ################################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename = "at")]
@@ -53,15 +91,28 @@ struct Position {
 	rot: Option<i16>
 }
 
+const POSITION_STR_WITHOUT_ROT: &str = "(at 1.23 -4.56)";
+static POSITION_VAL_WITHOUT_ROT: Position = Position {
+	x: 1.23,
+	y: -4.56,
+	rot: None
+};
+
+const POSITION_STR_WITH_ROT: &str = "(at 1.23 -4.56 -90)";
+static POSITION_VAL_WITH_ROT: Position = Position {
+	x: 1.23,
+	y: -4.56,
+	rot: Some(-90)
+};
+
 #[test]
 fn deserialize_position_without_rot() {
-	let input = "(at 1.23 -4.56)";
-	let expected = Position {
-		x: 1.23,
-		y: -4.56,
-		rot: None
-	};
-	assert_eq_parsed(input, expected);
+	assert_eq_parsed(POSITION_STR_WITHOUT_ROT, &POSITION_VAL_WITHOUT_ROT);
+}
+
+#[test]
+fn serialize_position_without_rot() {
+	assert_eq_written(&POSITION_VAL_WITHOUT_ROT, POSITION_STR_WITHOUT_ROT);
 }
 
 #[test]
@@ -72,7 +123,7 @@ fn deserialize_position_with_rot() {
 		y: -4.56,
 		rot: Some(-90)
 	};
-	assert_eq_parsed(input, expected);
+	assert_eq_parsed(input, &expected);
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -89,7 +140,7 @@ fn deserialize_size() {
 		width: 1.23,
 		height: 4.56
 	};
-	assert_eq_parsed(input, expected);
+	assert_eq_parsed(input, &expected);
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -149,7 +200,7 @@ fn deserialize_pad_without_drill() {
 		drill: None,
 		layers: vec!["F.Cu".to_owned()]
 	};
-	assert_eq_parsed(input, expected);
+	assert_eq_parsed(input, &expected);
 }
 
 #[test]
@@ -175,7 +226,7 @@ fn deserialize_pad_with_drill() {
 		}),
 		layers: vec!["F.Cu".to_owned()]
 	};
-	assert_eq_parsed(input, expected);
+	assert_eq_parsed(input, &expected);
 }
 
 #[test]
@@ -202,5 +253,5 @@ fn deserialize_pad_with_oval_drill() {
 		}),
 		layers: vec!["F.Cu".to_owned()]
 	};
-	assert_eq_parsed(input, expected);
+	assert_eq_parsed(input, &expected);
 }
