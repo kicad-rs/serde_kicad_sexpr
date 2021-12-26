@@ -98,13 +98,6 @@ static POSITION_VAL_WITHOUT_ROT: Position = Position {
 	rot: None
 };
 
-const POSITION_STR_WITH_ROT: &str = "(at 1.23 -4.56 -90)";
-static POSITION_VAL_WITH_ROT: Position = Position {
-	x: 1.23,
-	y: -4.56,
-	rot: Some(-90)
-};
-
 #[test]
 fn deserialize_position_without_rot() {
 	assert_eq_parsed(POSITION_STR_WITHOUT_ROT, &POSITION_VAL_WITHOUT_ROT);
@@ -115,15 +108,21 @@ fn serialize_position_without_rot() {
 	assert_eq_written(&POSITION_VAL_WITHOUT_ROT, POSITION_STR_WITHOUT_ROT);
 }
 
+const POSITION_STR_WITH_ROT: &str = "(at 1.23 -4.56 -90)";
+static POSITION_VAL_WITH_ROT: Position = Position {
+	x: 1.23,
+	y: -4.56,
+	rot: Some(-90)
+};
+
 #[test]
 fn deserialize_position_with_rot() {
-	let input = "(at 1.23 -4.56 -90)";
-	let expected = Position {
-		x: 1.23,
-		y: -4.56,
-		rot: Some(-90)
-	};
-	assert_eq_parsed(input, &expected);
+	assert_eq_parsed(POSITION_STR_WITH_ROT, &POSITION_VAL_WITH_ROT);
+}
+
+#[test]
+fn serialize_position_with_rot() {
+	assert_eq_written(&POSITION_VAL_WITH_ROT, POSITION_STR_WITH_ROT);
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]

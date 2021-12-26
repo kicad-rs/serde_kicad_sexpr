@@ -90,6 +90,22 @@ impl Serializer {
 		self.buf += " ";
 		self.buf += &v.to_string();
 	}
+
+	fn write_str(&mut self, v: &str) {
+		self.buf += " ";
+
+		const CHARS: &[char] = &[' ', '\t', '\n', '\r', '(', ')', '"'];
+		let need_quotes =
+			v.is_empty() || v.contains(CHARS) || v.chars().next().unwrap().is_ascii_digit();
+
+		if need_quotes {
+			self.buf += r#"""#;
+			self.buf += &v.replace('\\', r"\\").replace('"', r#"\""#);
+			self.buf += r#"""#;
+		} else {
+			self.buf += v;
+		}
+	}
 }
 
 macro_rules! serialize_type_error {
@@ -265,7 +281,6 @@ impl<'a> ser::Serializer for Field<'a> {
 
 	serialize_type_error! {
 		fn serialize_char(self, char);
-		fn serialize_str(self, &str);
 		fn serialize_bytes(self, &[u8]);
 		fn serialize_unit(self);
 		fn serialize_unit_variant(self, &'static str, u32, &'static str);
@@ -299,6 +314,11 @@ impl<'a> ser::Serializer for Field<'a> {
 
 	fn serialize_f64(self, v: f64) -> Result<()> {
 		self.ser.write_float(v);
+		Ok(())
+	}
+
+	fn serialize_str(self, v: &str) -> Result<()> {
+		self.ser.write_str(v);
 		Ok(())
 	}
 
