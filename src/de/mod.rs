@@ -308,8 +308,9 @@ impl<'a, 'de> MapAccess<'de> for SExpr<'a, 'de> {
 			}
 		}
 
+		let ident = self.fields[self.index];
 		self.index += 1;
-		seed.deserialize(Field::new(self.de))
+		seed.deserialize(Field::new(self.de, Some(ident)))
 	}
 }
 
@@ -338,7 +339,7 @@ impl<'a, 'de> SeqAccess<'de> for SExprTuple<'a, 'de> {
 		if self.de.peek_char()? == ')' {
 			return Ok(None);
 		}
-		seed.deserialize(Field::new(self.de)).map(Some)
+		seed.deserialize(Field::new(self.de, None)).map(Some)
 	}
 }
 
@@ -411,13 +412,17 @@ impl<'de> de::Deserializer<'de> for MissingField {
 
 /// A field whose value does not match its ident. This means that if a boolean gets requested,
 /// we must return false without touching the input.
+///
+/// We still store the ident if we know it, so that we can parse a sequence like
+/// (<ident> <values..>).
 struct Field<'a, 'de> {
-	de: &'a mut Deserializer<'de>
+	de: &'a mut Deserializer<'de>,
+	ident: Option<&'static str>
 }
 
 impl<'a, 'de> Field<'a, 'de> {
-	fn new(de: &'a mut Deserializer<'de>) -> Self {
-		Self { de }
+	fn new(de: &'a mut Deserializer<'de>, ident: Option<&'static str>) -> Self {
+		Self { de, ident }
 	}
 }
 
@@ -455,6 +460,9 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 					}
 				},
 				_ => self.deserialize_f32(visitor)
+			},
+			'(' if Some(self.de.peek_sexpr_identifier()?) == self.ident => {
+				self.deserialize_seq(visitor)
 			},
 			'(' => Err(Error::MissingSExprInfo),
 			_ => self.deserialize_string(visitor)
@@ -550,12 +558,27 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		visitor.visit_enum(self)
 	}
 
+	fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		let ident = self.ident.ok_or(Error::MissingSExprInfo)?;
+		visitor.visit_seq(SExprTuple::new(self.de, ident)?)
+	}
+
+	fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		self.deserialize_seq(visitor)
+	}
+
 	forward_to_parse_number! {
 		i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64
 	}
 
 	forward_to_deserialize_any! {
-		char bytes byte_buf unit seq tuple map identifier ignored_any
+		char bytes byte_buf unit map identifier ignored_any
 	}
 }
 
