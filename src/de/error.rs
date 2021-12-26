@@ -55,7 +55,12 @@ pub enum Error {
 
 	/// This error will be returned when attempting to deserialize a non-unit enum variant.
 	#[error("Non-unit enum variants are not supported")]
-	NonUnitEnumVariant
+	NonUnitEnumVariant,
+
+	/// This error will be returned if there were trailing tokens after the deserialization
+	/// finished.
+	#[error("Trailing tokens")]
+	TrailingTokens
 }
 
 impl de::Error for Error {

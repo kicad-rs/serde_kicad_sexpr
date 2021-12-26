@@ -25,7 +25,14 @@ where
 	T: Deserialize<'de>
 {
 	let mut deserializer = Deserializer::from_str(input);
-	T::deserialize(&mut deserializer)
+	let value = T::deserialize(&mut deserializer)?;
+
+	deserializer.skip_whitespace();
+	if !deserializer.input.is_empty() {
+		return Err(Error::TrailingTokens);
+	}
+
+	Ok(value)
 }
 
 impl<'de> Deserializer<'de> {
@@ -248,15 +255,8 @@ impl<'a, 'de> SExpr<'a, 'de> {
 			skip_to: None
 		})
 	}
-}
 
-impl<'a, 'de> MapAccess<'de> for SExpr<'a, 'de> {
-	type Error = Error;
-
-	fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
-	where
-		K: DeserializeSeed<'de>
-	{
+	fn check_eoe(&mut self) -> Result<()> {
 		self.de.skip_whitespace();
 		if self.skip_to.is_none() && self.de.peek_char()? == ')' {
 			self.de.consume(1)?;
@@ -264,15 +264,10 @@ impl<'a, 'de> MapAccess<'de> for SExpr<'a, 'de> {
 			// deserialize those as None/false eventhough they don't exist in the input.
 			self.skip_to = Some(self.index + 1);
 		}
-
-		if self.index >= self.fields.len() {
-			return Ok(None);
-		}
-		seed.deserialize(FieldIdent(self.fields[self.index]))
-			.map(Some)
+		Ok(())
 	}
 
-	fn next_value_seed<T>(&mut self, seed: T) -> Result<T::Value>
+	fn next_value_seed_impl<T>(&mut self, seed: T) -> Result<T::Value>
 	where
 		T: DeserializeSeed<'de>
 	{
@@ -286,43 +281,77 @@ impl<'a, 'de> MapAccess<'de> for SExpr<'a, 'de> {
 		if let Some(skip_to) = self.skip_to {
 			if skip_to == self.index {
 				self.skip_to = None;
-				self.index += 1;
 				return seed.deserialize(TrueField);
 			}
-			self.index += 1;
 			return seed.deserialize(MissingField);
 		}
 		if let Some(identifier) = self.de.peek_identifier() {
 			if self.fields[self.index] == identifier {
 				self.de.consume(identifier.len())?;
-				self.index += 1;
 				return seed.deserialize(TrueField);
 			}
 			for i in self.index + 1..self.fields.len() {
 				if self.fields[i] == identifier {
 					self.de.consume(identifier.len())?;
 					self.skip_to = Some(i);
-					self.index += 1;
 					return seed.deserialize(MissingField);
 				}
 			}
 		}
 
-		let ident = self.fields[self.index];
+		seed.deserialize(Field::new(self.de, Some(self.fields[self.index])))
+	}
+}
+
+impl<'a, 'de> MapAccess<'de> for SExpr<'a, 'de> {
+	type Error = Error;
+
+	fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
+	where
+		K: DeserializeSeed<'de>
+	{
+		self.check_eoe()?;
+		if self.index >= self.fields.len() {
+			return Ok(None);
+		}
+		seed.deserialize(FieldIdent(self.fields[self.index]))
+			.map(Some)
+	}
+
+	fn next_value_seed<T>(&mut self, seed: T) -> Result<T::Value>
+	where
+		T: DeserializeSeed<'de>
+	{
+		let value = self.next_value_seed_impl(seed)?;
 		self.index += 1;
-		seed.deserialize(Field::new(self.de, Some(ident)))
+		self.check_eoe()?;
+		Ok(value)
 	}
 }
 
 /// Deserialize an s-expr in tuple format. It cannot contain booleans.
 struct SExprTuple<'a, 'de> {
-	de: &'a mut Deserializer<'de>
+	de: &'a mut Deserializer<'de>,
+	end: bool
 }
 
 impl<'a, 'de> SExprTuple<'a, 'de> {
 	fn new(de: &'a mut Deserializer<'de>, name: &'static str) -> Result<Self> {
 		SExpr::consume_beginning(de, name)?;
-		Ok(Self { de })
+		Ok(Self { de, end: false })
+	}
+
+	fn check_eoe(&mut self) -> Result<()> {
+		if self.end {
+			return Ok(());
+		}
+
+		self.de.skip_whitespace();
+		if self.de.peek_char()? == ')' {
+			self.de.consume(')'.len_utf8())?;
+			self.end = true;
+		}
+		Ok(())
 	}
 }
 
@@ -333,13 +362,13 @@ impl<'a, 'de> SeqAccess<'de> for SExprTuple<'a, 'de> {
 	where
 		T: DeserializeSeed<'de>
 	{
-		// we can skip the boolean handling logic of SExpr as we don't have any identifiers
-		// to use
-		self.de.skip_whitespace();
-		if self.de.peek_char()? == ')' {
+		self.check_eoe()?;
+		if self.end {
 			return Ok(None);
 		}
-		seed.deserialize(Field::new(self.de, None)).map(Some)
+		let value = seed.deserialize(Field::new(self.de, None))?;
+		self.check_eoe()?;
+		Ok(Some(value))
 	}
 }
 
