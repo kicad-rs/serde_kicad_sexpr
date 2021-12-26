@@ -25,8 +25,8 @@ fn assert_eq_pretty<T>(input: &T, expected: &str)
 where
 	T: ?Sized + Serialize
 {
-	let written = serde_sexpr::to_string(input).expect("Failed to write input");
-	assert_eq!(written.as_str(), expected);
+	let written = serde_sexpr::to_string_pretty(input).expect("Failed to write input");
+	assert_eq!(written.as_str(), expected.trim_end_matches('\n'));
 }
 
 macro_rules! test_case {

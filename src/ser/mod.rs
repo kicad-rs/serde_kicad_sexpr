@@ -1,6 +1,8 @@
 use itoa::Integer;
 use paste::paste;
-use serde::ser::{self, Serialize, SerializeStruct, SerializeTupleStruct};
+use serde::ser::{
+	self, Serialize, SerializeSeq, SerializeStruct, SerializeTuple, SerializeTupleStruct
+};
 
 mod error;
 pub use error::Error;
@@ -64,8 +66,12 @@ impl Serializer {
 	}
 
 	fn begin_sexpr(&mut self, name: &str) {
-		if self.pretty && self.lvl > 0 {
-			self.newline();
+		if self.lvl > 0 {
+			if self.pretty {
+				self.newline();
+			} else {
+				self.buf += " ";
+			}
 		}
 		self.lvl += 1;
 		self.buf += "(";
@@ -74,10 +80,6 @@ impl Serializer {
 
 	fn end_sexpr(&mut self) {
 		self.lvl -= 1;
-		// if !pretty, self.indent will always be 0
-		if self.indent > self.lvl {
-			self.newline()
-		}
 		self.buf += ")";
 	}
 
@@ -125,6 +127,26 @@ macro_rules! serialize_type_error {
 			$(where $T: ?Sized + Serialize)?
 			{
 				Err(Error::ExpectedStruct)
+			}
+		)+
+	};
+
+	($(fn $ident:ident $(<$T:ident>)? (self $(, $arg_ty:ty)*) = $err:expr;)+) => {
+		$(
+			fn $ident $(<$T>)? (self $(, _: $arg_ty)*) -> Result<Self::Ok, Self::Error>
+			$(where $T: ?Sized + Serialize)?
+			{
+				Err($err)
+			}
+		)+
+	};
+
+	($(fn $ident:ident $(<$T:ident>)? (self $(, $arg_ty:ty)*) -> $ret:ty = $err:expr;)+) => {
+		$(
+			fn $ident $(<$T>)? (self $(, _: $arg_ty)*) -> $ret
+			$(where $T: ?Sized + Serialize)?
+			{
+				Err($err)
 			}
 		)+
 	};
@@ -271,8 +293,8 @@ impl<'a> ser::Serializer for Field<'a> {
 	type Ok = ();
 	type Error = Error;
 
-	type SerializeSeq = Impossible;
-	type SerializeTuple = Impossible;
+	type SerializeSeq = Self;
+	type SerializeTuple = Self;
 	type SerializeTupleStruct = &'a mut Serializer;
 	type SerializeTupleVariant = Impossible;
 	type SerializeMap = Impossible;
@@ -280,19 +302,16 @@ impl<'a> ser::Serializer for Field<'a> {
 	type SerializeStructVariant = Impossible;
 
 	serialize_type_error! {
-		fn serialize_char(self, char);
-		fn serialize_bytes(self, &[u8]);
-		fn serialize_unit(self);
-		fn serialize_unit_variant(self, &'static str, u32, &'static str);
-		fn serialize_newtype_variant<T>(self, &'static str, u32, &'static str, &T);
+		fn serialize_char(self, char) = Error::Char;
+		fn serialize_bytes(self, &[u8]) = Error::Bytes;
+		fn serialize_unit(self) = Error::Unit;
+		fn serialize_newtype_variant<T>(self, &'static str, u32, &'static str, &T) = Error::ComplexEnum;
 	}
 
 	serialize_type_error! {
-		fn serialize_seq(self, Option<usize>) -> Result<Impossible>;
-		fn serialize_tuple(self, usize) -> Result<Impossible>;
-		fn serialize_tuple_variant(self, &'static str, u32, &'static str, usize) -> Result<Impossible>;
-		fn serialize_map(self, Option<usize>) -> Result<Impossible>;
-		fn serialize_struct_variant(self, &'static str, u32, &'static str, usize) -> Result<Impossible>;
+		fn serialize_tuple_variant(self, &'static str, u32, &'static str, usize) -> Result<Impossible> = Error::ComplexEnum;
+		fn serialize_map(self, Option<usize>) -> Result<Impossible> = Error::Map;
+		fn serialize_struct_variant(self, &'static str, u32, &'static str, usize) -> Result<Impossible> = Error::ComplexEnum;
 	}
 
 	fn serialize_bool(self, v: bool) -> Result<()> {
@@ -337,11 +356,33 @@ impl<'a> ser::Serializer for Field<'a> {
 		self.ser.serialize_unit_struct(name)
 	}
 
+	fn serialize_unit_variant(
+		self,
+		_name: &'static str,
+		_variant_index: u32,
+		variant: &'static str
+	) -> Result<()> {
+		self.ser.write_str(variant);
+		Ok(())
+	}
+
 	fn serialize_newtype_struct<T>(self, name: &'static str, value: &T) -> Result<()>
 	where
 		T: ?Sized + Serialize
 	{
 		self.ser.serialize_newtype_struct(name, value)
+	}
+
+	fn serialize_seq(self, _len: Option<usize>) -> Result<Self> {
+		let name = self.name.ok_or(Error::UnnamedSeq)?;
+		self.ser.begin_sexpr(name);
+		Ok(self)
+	}
+
+	fn serialize_tuple(self, _len: usize) -> Result<Self> {
+		let name = self.name.ok_or(Error::UnnamedSeq)?;
+		self.ser.begin_sexpr(name);
+		Ok(self)
 	}
 
 	fn serialize_tuple_struct(self, name: &'static str, len: usize) -> Result<&'a mut Serializer> {
@@ -350,5 +391,45 @@ impl<'a> ser::Serializer for Field<'a> {
 
 	fn serialize_struct(self, name: &'static str, len: usize) -> Result<&'a mut Serializer> {
 		self.ser.serialize_struct(name, len)
+	}
+}
+
+impl<'a> SerializeSeq for Field<'a> {
+	type Ok = ();
+	type Error = Error;
+
+	fn serialize_element<T>(&mut self, value: &T) -> Result<()>
+	where
+		T: ?Sized + Serialize
+	{
+		value.serialize(Field {
+			ser: &mut *self.ser,
+			name: None
+		})
+	}
+
+	fn end(self) -> Result<()> {
+		self.ser.end_sexpr();
+		Ok(())
+	}
+}
+
+impl<'a> SerializeTuple for Field<'a> {
+	type Ok = ();
+	type Error = Error;
+
+	fn serialize_element<T>(&mut self, value: &T) -> Result<()>
+	where
+		T: ?Sized + Serialize
+	{
+		value.serialize(Field {
+			ser: &mut *self.ser,
+			name: None
+		})
+	}
+
+	fn end(self) -> Result<()> {
+		self.ser.end_sexpr();
+		Ok(())
 	}
 }

@@ -15,7 +15,23 @@ pub enum Error {
 	/// This error will be returned if a boolean was detected in an unnamed container, i.e.
 	/// a tuple or a sequence.
 	#[error("Unnamed boolean")]
-	UnnamedBoolean
+	UnnamedBoolean,
+
+	/// This error will be returned if a sequence was detected in an unnamed container, i.e. a
+	/// tuple or a sequence.
+	#[error("Unnamed sequence")]
+	UnnamedSeq,
+
+	#[error("char is unsupported")]
+	Char,
+	#[error("byte array is unsupported")]
+	Bytes,
+	#[error("unit is unsupported")]
+	Unit,
+	#[error("enums with non-unit variants are not supported")]
+	ComplexEnum,
+	#[error("maps are not supported")]
+	Map
 }
 
 impl ser::Error for Error {
