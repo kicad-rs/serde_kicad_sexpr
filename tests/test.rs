@@ -1,6 +1,6 @@
 use pretty_assertions::assert_eq;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_sexpr::Literal;
+use serde_sexpr::{deserialize_option, Literal};
 use std::fmt::Debug;
 
 fn assert_eq_parsed<T>(input: &str, expected: T)
@@ -49,6 +49,7 @@ fn deserialize_descr() {
 struct Position {
 	x: f32,
 	y: f32,
+	#[serde(deserialize_with = "deserialize_option")]
 	rot: Option<i16>
 }
 
@@ -112,6 +113,7 @@ enum PadShape {
 struct Drill {
 	oval: bool,
 	drill1: f32,
+	#[serde(deserialize_with = "deserialize_option")]
 	drill2: Option<f32>
 }
 
@@ -123,6 +125,7 @@ struct Pad {
 	shape: PadShape,
 	at: Position,
 	size: Size,
+	#[serde(deserialize_with = "deserialize_option")]
 	drill: Option<Drill>,
 	layers: Vec<String>
 }

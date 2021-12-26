@@ -2,8 +2,10 @@
 #![forbid(unsafe_code)]
 
 mod literal;
+mod option;
 
 pub mod de;
 
 pub use de::from_str;
 pub use literal::Literal;
+pub use option::deserialize_option;
