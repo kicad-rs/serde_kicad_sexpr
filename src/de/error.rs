@@ -43,6 +43,11 @@ pub enum Error {
 	#[error("Expected string")]
 	ExpectedString,
 
+	/// This error will be returned if an option was requested. [`Option`] is **not supported**
+	/// by this data format.
+	#[error("std::option::Option cannot be deserialized by this data format")]
+	DeserializeOption,
+
 	/// This error will be returned if an s-expr is found, but its name (and fields) were not
 	/// supplied to the deserializer (e.g. `deserialize_any` was called).
 	#[error("Missing s-expr type info")]

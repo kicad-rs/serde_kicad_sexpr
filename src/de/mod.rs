@@ -486,12 +486,14 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		}
 	}
 
-	fn deserialize_option<V>(self, visitor: V) -> Result<V::Value>
+	fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
 	where
 		V: Visitor<'de>
 	{
-		// If we arrived at this point in the code, there's no way for the option to be None
-		visitor.visit_some(self)
+		// we'll need to know the type of Some (i.e. the s-expr tag) to see if it is present in
+		// the input or not
+		// however, serde doesn't give us this type of information, so we'll just error
+		return Err(Error::DeserializeOption);
 	}
 
 	fn deserialize_struct<V>(
