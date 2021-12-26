@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["serde_sexpr"] = [{"text":"impl <a class=\"trait\" href=\"https://docs.rs/serde/1.0.132/serde/ser/trait.Error.html\" title=\"trait serde::ser::Error\">Error</a> for <a class=\"enum\" href=\"serde_sexpr/ser/enum.Error.html\" title=\"enum serde_sexpr::ser::Error\">Error</a>","synthetic":false,"types":["serde_sexpr::ser::error::Error"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

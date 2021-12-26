@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["serde_sexpr"] = [{"text":"impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde/1.0.132/serde/de/trait.Deserialize.html\" title=\"trait serde::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"struct\" href=\"serde_sexpr/struct.Literal.html\" title=\"struct serde_sexpr::Literal\">Literal</a>","synthetic":false,"types":["serde_sexpr::literal::Literal"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
