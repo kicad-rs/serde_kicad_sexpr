@@ -1,4 +1,5 @@
-use once_cell::sync::Lazy as SyncLazy;
+use indoc::indoc;
+use paste::paste;
 use pretty_assertions::assert_eq;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_sexpr::{deserialize_option, Literal};
@@ -12,12 +13,53 @@ where
 	assert_eq!(&parsed, expected);
 }
 
-fn assert_eq_written<T>(input: &T, expected: &str)
+fn assert_eq_ugly<T>(input: &T, expected: &str)
 where
 	T: ?Sized + Serialize
 {
 	let written = serde_sexpr::to_string(input).expect("Failed to write input");
 	assert_eq!(written.as_str(), expected);
+}
+
+fn assert_eq_pretty<T>(input: &T, expected: &str)
+where
+	T: ?Sized + Serialize
+{
+	let written = serde_sexpr::to_string(input).expect("Failed to write input");
+	assert_eq!(written.as_str(), expected);
+}
+
+macro_rules! test_case {
+	(name: $name:ident,input: $input:expr,pretty: $pretty:expr,value: $value:expr) => {
+		paste! {
+			const [<TEST_CASE_INPUT_ $name:upper>]: &str = $input;
+			const [<TEST_CASE_PRETTY_ $name:upper>]: &str = $pretty;
+
+			#[test]
+			fn [<test_deserialize_ugly_ $name>]() {
+				let value = $value;
+				assert_eq_parsed([<TEST_CASE_INPUT_ $name:upper>], &value);
+			}
+
+			#[test]
+			fn [<test_deserialize_pretty_ $name>]() {
+				let value = $value;
+				assert_eq_parsed([<TEST_CASE_PRETTY_ $name:upper>], &value);
+			}
+
+			#[test]
+			fn [<test_serialize_ugly_ $name>]() {
+				let value = $value;
+				assert_eq_ugly(&value, [<TEST_CASE_INPUT_ $name:upper>]);
+			}
+
+			#[test]
+			fn [<test_serialize_pretty_ $name>]() {
+				let value = $value;
+				assert_eq_pretty(&value, [<TEST_CASE_PRETTY_ $name:upper>]);
+			}
+		}
+	};
 }
 
 // ################################################################################################
@@ -26,17 +68,11 @@ where
 #[serde(rename = "locked")]
 struct Locked;
 
-const LOCKED_STR: &str = "(locked)";
-static LOCKED_VAL: Locked = Locked;
-
-#[test]
-fn deserialize_locked() {
-	assert_eq_parsed(LOCKED_STR, &LOCKED_VAL);
-}
-
-#[test]
-fn serialize_locked() {
-	assert_eq_written(&LOCKED_VAL, LOCKED_STR);
+test_case! {
+	name: locked,
+	input: "(locked)",
+	pretty: "(locked)",
+	value: Locked
 }
 
 // ################################################################################################
@@ -45,17 +81,11 @@ fn serialize_locked() {
 #[serde(rename = "attr")]
 struct Attribute(String);
 
-const ATTRIBUTE_STR: &str = "(attr smd)";
-static ATTRIBUTE_VAL: SyncLazy<Attribute> = SyncLazy::new(|| Attribute("smd".to_owned()));
-
-#[test]
-fn deserialize_attr() {
-	assert_eq_parsed(ATTRIBUTE_STR, &*ATTRIBUTE_VAL);
-}
-
-#[test]
-fn serialize_attr() {
-	assert_eq_written(&*ATTRIBUTE_VAL, ATTRIBUTE_STR);
+test_case! {
+	name: attr,
+	input: "(attr smd)",
+	pretty: "(attr smd)",
+	value: Attribute("smd".to_owned())
 }
 
 // ################################################################################################
@@ -64,20 +94,11 @@ fn serialize_attr() {
 #[serde(rename = "descr")]
 struct Description(String);
 
-const DESCRIPTION_STR: &str =
-	r#"(descr "Hello \"World\", this \"\\\" is an amazing backspace! \\")"#;
-const DESCRIPTION_VAL: SyncLazy<Description> = SyncLazy::new(|| {
-	Description(r#"Hello "World", this "\" is an amazing backspace! \"#.to_owned())
-});
-
-#[test]
-fn deserialize_descr() {
-	assert_eq_parsed(DESCRIPTION_STR, &*DESCRIPTION_VAL);
-}
-
-#[test]
-fn serialize_descr() {
-	assert_eq_written(&*DESCRIPTION_VAL, DESCRIPTION_STR);
+test_case! {
+	name: descr,
+	input: r#"(descr "Hello \"World\", this \"\\\" is an amazing backspace! \\")"#,
+	pretty: r#"(descr "Hello \"World\", this \"\\\" is an amazing backspace! \\")"#,
+	value: Description(r#"Hello "World", this "\" is an amazing backspace! \"#.to_owned())
 }
 
 // ################################################################################################
@@ -91,39 +112,29 @@ struct Position {
 	rot: Option<i16>
 }
 
-const POSITION_STR_WITHOUT_ROT: &str = "(at 1.23 -4.56)";
-static POSITION_VAL_WITHOUT_ROT: Position = Position {
-	x: 1.23,
-	y: -4.56,
-	rot: None
-};
-
-#[test]
-fn deserialize_position_without_rot() {
-	assert_eq_parsed(POSITION_STR_WITHOUT_ROT, &POSITION_VAL_WITHOUT_ROT);
+test_case! {
+	name: position_without_rot,
+	input: "(at 1.23 -4.56)",
+	pretty: "(at 1.23 -4.56)",
+	value: Position {
+		x: 1.23,
+		y: -4.56,
+		rot: None
+	}
 }
 
-#[test]
-fn serialize_position_without_rot() {
-	assert_eq_written(&POSITION_VAL_WITHOUT_ROT, POSITION_STR_WITHOUT_ROT);
+test_case! {
+	name: position_with_rot,
+	input: "(at 1.23 -4.56 -90)",
+	pretty: "(at 1.23 -4.56 -90)",
+	value: Position {
+		x: 1.23,
+		y: -4.56,
+		rot: Some(-90)
+	}
 }
 
-const POSITION_STR_WITH_ROT: &str = "(at 1.23 -4.56 -90)";
-static POSITION_VAL_WITH_ROT: Position = Position {
-	x: 1.23,
-	y: -4.56,
-	rot: Some(-90)
-};
-
-#[test]
-fn deserialize_position_with_rot() {
-	assert_eq_parsed(POSITION_STR_WITH_ROT, &POSITION_VAL_WITH_ROT);
-}
-
-#[test]
-fn serialize_position_with_rot() {
-	assert_eq_written(&POSITION_VAL_WITH_ROT, POSITION_STR_WITH_ROT);
-}
+// ################################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename = "size")]
@@ -132,15 +143,17 @@ struct Size {
 	height: f32
 }
 
-#[test]
-fn deserialize_size() {
-	let input = "(size 1.23 4.56)";
-	let expected = Size {
+test_case! {
+	name: size,
+	input: "(size 1.23 4.56)",
+	pretty: "(size 1.23 4.56)",
+	value: Size {
 		width: 1.23,
 		height: 4.56
-	};
-	assert_eq_parsed(input, &expected);
+	}
 }
+
+// ################################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 enum PadType {
@@ -180,10 +193,16 @@ struct Pad {
 	layers: Vec<String>
 }
 
-#[test]
-fn deserialize_pad_without_drill() {
-	let input = "(pad 1 smd rect (at 0 0) (size 1.27 1.27) (layers F.Cu))";
-	let expected = Pad {
+test_case! {
+	name: pad_without_drill,
+	input: "(pad 1 smd rect (at 0 0) (size 1.27 1.27) (layers F.Cu))",
+	pretty: indoc!(r#"
+		(pad 1 smd rect
+		  (at 0 0)
+		  (size 1.27 1.27)
+		  (layers F.Cu))
+	"#),
+	value: Pad {
 		index: 1.into(),
 		ty: PadType::Smd,
 		shape: PadShape::Rect,
@@ -198,14 +217,20 @@ fn deserialize_pad_without_drill() {
 		},
 		drill: None,
 		layers: vec!["F.Cu".to_owned()]
-	};
-	assert_eq_parsed(input, &expected);
+	}
 }
 
-#[test]
-fn deserialize_pad_with_drill() {
-	let input = "(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27) (drill 0.635) (layers F.Cu))";
-	let expected = Pad {
+test_case! {
+	name: pad_with_drill,
+	input: "(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27) (drill 0.635) (layers F.Cu))",
+	pretty: indoc!(r#"
+		(pad 1 thru-hole rect
+		  (at 0 0)
+		  (size 1.27 1.27)
+		  (drill 0.635)
+		  (layers F.Cu))
+	"#),
+	value: Pad {
 		index: 1.into(),
 		ty: PadType::ThroughHole,
 		shape: PadShape::Rect,
@@ -224,15 +249,20 @@ fn deserialize_pad_with_drill() {
 			drill2: None
 		}),
 		layers: vec!["F.Cu".to_owned()]
-	};
-	assert_eq_parsed(input, &expected);
+	}
 }
 
-#[test]
-fn deserialize_pad_with_oval_drill() {
-	let input =
-		"(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27) (drill oval 0.635 0.847) (layers F.Cu))";
-	let expected = Pad {
+test_case! {
+	name: pad_with_oval_drill,
+	input: "(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27) (drill oval 0.635 0.847) (layers F.Cu))",
+	pretty: indoc!(r#"
+		(pad 1 thru-hole rect
+		  (at 0 0)
+		  (size 1.27 1.27)
+		  (drill oval 0.635 0.847)
+		  (layers F.Cu))
+	"#),
+	value: Pad {
 		index: 1.into(),
 		ty: PadType::ThroughHole,
 		shape: PadShape::Rect,
@@ -251,6 +281,5 @@ fn deserialize_pad_with_oval_drill() {
 			drill2: Some(0.847)
 		}),
 		layers: vec!["F.Cu".to_owned()]
-	};
-	assert_eq_parsed(input, &expected);
+	}
 }
