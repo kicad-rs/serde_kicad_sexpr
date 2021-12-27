@@ -330,17 +330,17 @@
 <span class="doccomment">/// # use serde::{Deserialize, Serialize};</span>
 <span class="doccomment">/// # #[derive(Debug, PartialEq)]</span>
 <span class="doccomment">/// #[derive(Deserialize, Serialize)]</span>
-<span class="doccomment">/// #[serde(rename = &quot;size&quot;)]</span>
+<span class="doccomment">/// #[serde(deny_unknown_fields, rename = &quot;size&quot;)]</span>
 <span class="doccomment">/// struct Size(f32, f32);</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # #[derive(Debug, PartialEq)]</span>
 <span class="doccomment">/// #[derive(Deserialize, Serialize)]</span>
-<span class="doccomment">/// #[serde(rename = &quot;thickness&quot;)]</span>
+<span class="doccomment">/// #[serde(deny_unknown_fields, rename = &quot;thickness&quot;)]</span>
 <span class="doccomment">/// struct Thickness(f32);</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # #[derive(Debug, PartialEq)]</span>
 <span class="doccomment">/// #[derive(Deserialize, Serialize)]</span>
-<span class="doccomment">/// #[serde(rename = &quot;font&quot;)]</span>
+<span class="doccomment">/// #[serde(deny_unknown_fields, rename = &quot;font&quot;)]</span>
 <span class="doccomment">/// struct Font {</span>
 <span class="doccomment">/// 	size: Size,</span>
 <span class="doccomment">///</span>
@@ -393,17 +393,17 @@
 <span class="doccomment">/// # use serde::{Deserialize, Serialize};</span>
 <span class="doccomment">/// # #[derive(Debug, PartialEq)]</span>
 <span class="doccomment">/// #[derive(Deserialize, Serialize)]</span>
-<span class="doccomment">/// #[serde(rename = &quot;size&quot;)]</span>
+<span class="doccomment">/// #[serde(deny_unknown_fields, rename = &quot;size&quot;)]</span>
 <span class="doccomment">/// struct Size(f32, f32);</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # #[derive(Debug, PartialEq)]</span>
 <span class="doccomment">/// #[derive(Deserialize, Serialize)]</span>
-<span class="doccomment">/// #[serde(rename = &quot;thickness&quot;)]</span>
+<span class="doccomment">/// #[serde(deny_unknown_fields, rename = &quot;thickness&quot;)]</span>
 <span class="doccomment">/// struct Thickness(f32);</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// # #[derive(Debug, PartialEq)]</span>
 <span class="doccomment">/// #[derive(Deserialize, Serialize)]</span>
-<span class="doccomment">/// #[serde(rename = &quot;font&quot;)]</span>
+<span class="doccomment">/// #[serde(deny_unknown_fields, rename = &quot;font&quot;)]</span>
 <span class="doccomment">/// struct Font {</span>
 <span class="doccomment">/// 	size: Size,</span>
 <span class="doccomment">///</span>
