@@ -1,7 +1,8 @@
 use itoa::Integer;
 use paste::paste;
 use serde::ser::{
-	self, Serialize, SerializeSeq, SerializeStruct, SerializeTuple, SerializeTupleStruct
+	self, Serialize, SerializeSeq, SerializeStruct, SerializeTuple,
+	SerializeTupleStruct
 };
 
 mod error;
@@ -100,7 +101,9 @@ impl Serializer {
 		let need_quotes = v.is_empty()
 			|| match aggressive_quotes {
 				true => v.chars().any(|ch| !ch.is_ascii_alphabetic() && ch != '_'),
-				false => v.contains(CHARS) || v.chars().next().unwrap().is_ascii_digit()
+				false => {
+					v.contains(CHARS) || v.chars().next().unwrap().is_ascii_digit()
+				},
 			};
 
 		if need_quotes {
@@ -220,7 +223,11 @@ impl<'a> ser::Serializer for &'a mut Serializer {
 		Ok(())
 	}
 
-	fn serialize_tuple_struct(self, name: &'static str, _len: usize) -> Result<Self> {
+	fn serialize_tuple_struct(
+		self,
+		name: &'static str,
+		_len: usize
+	) -> Result<Self> {
 		self.begin_sexpr(name);
 		Ok(self)
 	}
@@ -392,11 +399,19 @@ impl<'a> ser::Serializer for Field<'a> {
 		self.serialize_seq(Some(len))
 	}
 
-	fn serialize_tuple_struct(self, name: &'static str, len: usize) -> Result<&'a mut Serializer> {
+	fn serialize_tuple_struct(
+		self,
+		name: &'static str,
+		len: usize
+	) -> Result<&'a mut Serializer> {
 		self.ser.serialize_tuple_struct(name, len)
 	}
 
-	fn serialize_struct(self, name: &'static str, len: usize) -> Result<&'a mut Serializer> {
+	fn serialize_struct(
+		self,
+		name: &'static str,
+		len: usize
+	) -> Result<&'a mut Serializer> {
 		self.ser.serialize_struct(name, len)
 	}
 }

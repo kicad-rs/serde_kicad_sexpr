@@ -1,5 +1,7 @@
 use serde::{
-	de::{self, Deserialize, Deserializer, EnumAccess, MapAccess, SeqAccess, Visitor},
+	de::{
+		self, Deserialize, Deserializer, EnumAccess, MapAccess, SeqAccess, Visitor
+	},
 	ser::{Serialize, Serializer}
 };
 use std::{

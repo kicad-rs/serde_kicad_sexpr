@@ -1,6 +1,9 @@
 use paste::paste;
 use serde::{
-	de::{self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor},
+	de::{
+		self, DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess,
+		Visitor
+	},
 	forward_to_deserialize_any, Deserialize
 };
 use std::{borrow::Cow, fmt::Display, str::FromStr};
@@ -188,7 +191,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 		visitor.visit_map(SExpr::new(self, name, fields)?)
 	}
 
-	fn deserialize_unit_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value>
+	fn deserialize_unit_struct<V>(
+		self,
+		name: &'static str,
+		visitor: V
+	) -> Result<V::Value>
 	where
 		V: Visitor<'de>
 	{
@@ -199,7 +206,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 		visitor.visit_unit()
 	}
 
-	fn deserialize_newtype_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value>
+	fn deserialize_newtype_struct<V>(
+		self,
+		name: &'static str,
+		visitor: V
+	) -> Result<V::Value>
 	where
 		V: Visitor<'de>
 	{
@@ -233,7 +244,10 @@ struct SExpr<'a, 'de> {
 }
 
 impl<'a, 'de> SExpr<'a, 'de> {
-	fn consume_beginning(de: &mut Deserializer<'de>, name: &'static str) -> Result<()> {
+	fn consume_beginning(
+		de: &mut Deserializer<'de>,
+		name: &'static str
+	) -> Result<()> {
 		de.skip_whitespace();
 		if de.peek_sexpr_identifier()? != name {
 			return Err(Error::ExpectedSExprIdentifier(name));
@@ -499,7 +513,8 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		match self.de.peek_char()? {
 			ch @ '0'..='9' | ch @ '-' | ch @ '.' => match self.de.input.find('.') {
 				Some(idx)
-					if (&self.de.input[..idx]).contains(|ch: char| ch.is_ascii_whitespace()) =>
+					if (&self.de.input[..idx])
+						.contains(|ch: char| ch.is_ascii_whitespace()) =>
 				{
 					if ch == '-' {
 						self.deserialize_i64(visitor)
@@ -564,7 +579,11 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		visitor.visit_map(SExpr::new(self.de, name, fields)?)
 	}
 
-	fn deserialize_unit_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value>
+	fn deserialize_unit_struct<V>(
+		self,
+		name: &'static str,
+		visitor: V
+	) -> Result<V::Value>
 	where
 		V: Visitor<'de>
 	{
@@ -575,7 +594,11 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		visitor.visit_unit()
 	}
 
-	fn deserialize_newtype_struct<V>(self, name: &'static str, visitor: V) -> Result<V::Value>
+	fn deserialize_newtype_struct<V>(
+		self,
+		name: &'static str,
+		visitor: V
+	) -> Result<V::Value>
 	where
 		V: Visitor<'de>
 	{
@@ -687,7 +710,11 @@ impl<'de> VariantAccess<'de> for UnitVariant {
 		Err(Error::NonUnitEnumVariant)
 	}
 
-	fn struct_variant<V>(self, _fields: &'static [&'static str], _visitor: V) -> Result<V::Value>
+	fn struct_variant<V>(
+		self,
+		_fields: &'static [&'static str],
+		_visitor: V
+	) -> Result<V::Value>
 	where
 		V: Visitor<'de>
 	{

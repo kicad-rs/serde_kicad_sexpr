@@ -25,7 +25,8 @@ fn assert_eq_pretty<T>(input: &T, expected: &str)
 where
 	T: ?Sized + Serialize
 {
-	let written = serde_sexpr::to_string_pretty(input).expect("Failed to write input");
+	let written =
+		serde_sexpr::to_string_pretty(input).expect("Failed to write input");
 	assert_eq!(written.as_str(), expected.trim_end_matches('\n'));
 }
 
@@ -54,7 +55,9 @@ macro_rules! test_case {
 		}
 	};
 
-	(name: $name:ident,input: $input:expr,pretty: $pretty:expr,value: $value:expr) => {
+	(
+		name: $name:ident,input: $input:expr,pretty: $pretty:expr,value: $value:expr
+	) => {
 		paste! {
 			const [<TEST_CASE_INPUT_ $name:upper>]: &str = $input;
 			const [<TEST_CASE_PRETTY_ $name:upper>]: &str = $pretty;
