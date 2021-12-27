@@ -1,12 +1,130 @@
-use serde::de::{self, Deserialize, Deserializer, EnumAccess, MapAccess, SeqAccess, Visitor};
-use std::fmt::{self, Formatter};
+use serde::{
+	de::{self, Deserialize, Deserializer, EnumAccess, MapAccess, SeqAccess, Visitor},
+	ser::{Serialize, Serializer}
+};
+use std::{
+	fmt::{self, Formatter},
+	marker::PhantomData
+};
 
-/// Deserialize an [`Option`] without using the [`Deserializer::deserialize_option`]
-/// method, but instead try to deserialize the value as if it was present, and return
-/// [`None`] if the deserializer returns an error. This allows the deserializer to get
-/// type information for the type inside the option, so that we can assume that a value
-/// is [`None`] or missing if it has an incorrect type. The s-expr data format simply
-/// skips non-present values on serialization, so this is our only way of knowing.
+/// Deserialize an [`Option`] in a way that is supported by the s-expression format.
+///
+/// ### Example
+///
+/// ```rust
+/// # use serde::{Deserialize, Serialize};
+/// # #[derive(Debug, PartialEq)]
+/// #[derive(Deserialize, Serialize)]
+/// #[serde(rename = "size")]
+/// struct Size(f32, f32);
+///
+/// # #[derive(Debug, PartialEq)]
+/// #[derive(Deserialize, Serialize)]
+/// #[serde(rename = "thickness")]
+/// struct Thickness(f32);
+///
+/// # #[derive(Debug, PartialEq)]
+/// #[derive(Deserialize, Serialize)]
+/// #[serde(rename = "font")]
+/// struct Font {
+/// 	size: Size,
+///
+/// 	// This attribute enables our custom deserialize logic.
+/// 	#[serde(with = "serde_sexpr::Option")]
+/// 	thickness: Option<Thickness>,
+///
+/// 	bold: bool
+/// }
+/// # assert_eq!(
+/// # 	serde_sexpr::from_str::<Font>("(font (size 1 1) bold)").unwrap(),
+/// # 	Font { size: Size(1.0, 1.0), thickness: None, bold: true }
+/// # );
+/// ```
+///
+/// ### Description
+///
+/// For a more detailed description, see [`deserialize_option`].
+pub struct OptionDef<T>(PhantomData<T>);
+
+impl<'de, T> OptionDef<T>
+where
+	T: Deserialize<'de>
+{
+	pub fn deserialize<D>(deserializer: D) -> Result<Option<T>, D::Error>
+	where
+		D: Deserializer<'de>
+	{
+		deserialize_option(deserializer)
+	}
+}
+
+impl<T> OptionDef<T>
+where
+	Option<T>: Serialize
+{
+	pub fn serialize<S>(this: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
+	where
+		S: Serializer
+	{
+		this.serialize(serializer)
+	}
+}
+
+/// Deserialize an [`Option`] in a way that is supported by the s-expression format.
+///
+/// ### Example
+///
+/// ```rust
+/// # use serde::{Deserialize, Serialize};
+/// # #[derive(Debug, PartialEq)]
+/// #[derive(Deserialize, Serialize)]
+/// #[serde(rename = "size")]
+/// struct Size(f32, f32);
+///
+/// # #[derive(Debug, PartialEq)]
+/// #[derive(Deserialize, Serialize)]
+/// #[serde(rename = "thickness")]
+/// struct Thickness(f32);
+///
+/// # #[derive(Debug, PartialEq)]
+/// #[derive(Deserialize, Serialize)]
+/// #[serde(rename = "font")]
+/// struct Font {
+/// 	size: Size,
+///
+/// 	// This attribute enables our custom deserialize logic.
+/// 	#[serde(deserialize_with = "serde_sexpr::deserialize_option")]
+/// 	thickness: Option<Thickness>,
+///
+/// 	bold: bool
+/// }
+/// # assert_eq!(
+/// # 	serde_sexpr::from_str::<Font>("(font (size 1 1) bold)").unwrap(),
+/// # 	Font { size: Size(1.0, 1.0), thickness: None, bold: true }
+/// # );
+/// ```
+///
+/// ### Description
+///
+/// The s-expression format is not only not self-describing, but also does not provide any way
+/// to see if a value is "missing" (i.e. [`None`]) without knowing its type. Unfortunately, serde
+/// expects us to decide if the value is present before we know its type: In the above example,
+/// we have the input string `"bold)"` and need to know if `thickness` is present or not, without
+/// knowing that `thickness` is an s-expr and not, say, an enum that has a variant called `bold`.
+///
+/// This custom deserialize logic therefore avoids calling [`Deserializer::deserialize_option`]
+/// alltogether. Instead, we'll try to deserialize the value as if it was present, and return
+/// [`None`] if the deserializer returns an error before calling the visitor. This is likely
+/// indicative of a type error, that would indicate a missing value.
+///
+/// ### Drawbacks
+///
+/// Using this deserialize logic might hide errors in the input. If this optional value
+/// is the last value that gets deserialized, and the deserialization failed due to some
+/// error other than a type error, it might get hidden.
+///
+/// Also, if trying to deserialize the value alters the state of the deserializer, it could
+/// lead to incorrect deserialization.
 pub fn deserialize_option<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
 where
 	D: Deserializer<'de>,
