@@ -15,17 +15,17 @@ use std::{
 /// # use serde::{Deserialize, Serialize};
 /// # #[derive(Debug, PartialEq)]
 /// #[derive(Deserialize, Serialize)]
-/// #[serde(rename = "size")]
+/// #[serde(deny_unknown_fields, rename = "size")]
 /// struct Size(f32, f32);
 ///
 /// # #[derive(Debug, PartialEq)]
 /// #[derive(Deserialize, Serialize)]
-/// #[serde(rename = "thickness")]
+/// #[serde(deny_unknown_fields, rename = "thickness")]
 /// struct Thickness(f32);
 ///
 /// # #[derive(Debug, PartialEq)]
 /// #[derive(Deserialize, Serialize)]
-/// #[serde(rename = "font")]
+/// #[serde(deny_unknown_fields, rename = "font")]
 /// struct Font {
 /// 	size: Size,
 ///
@@ -78,17 +78,17 @@ where
 /// # use serde::{Deserialize, Serialize};
 /// # #[derive(Debug, PartialEq)]
 /// #[derive(Deserialize, Serialize)]
-/// #[serde(rename = "size")]
+/// #[serde(deny_unknown_fields, rename = "size")]
 /// struct Size(f32, f32);
 ///
 /// # #[derive(Debug, PartialEq)]
 /// #[derive(Deserialize, Serialize)]
-/// #[serde(rename = "thickness")]
+/// #[serde(deny_unknown_fields, rename = "thickness")]
 /// struct Thickness(f32);
 ///
 /// # #[derive(Debug, PartialEq)]
 /// #[derive(Deserialize, Serialize)]
-/// #[serde(rename = "font")]
+/// #[serde(deny_unknown_fields, rename = "font")]
 /// struct Font {
 /// 	size: Size,
 ///

@@ -93,12 +93,15 @@ impl Serializer {
 		self.buf += &v.to_string();
 	}
 
-	fn write_str(&mut self, v: &str) {
+	fn write_str(&mut self, v: &str, aggressive_quotes: bool) {
 		self.buf += " ";
 
 		const CHARS: &[char] = &[' ', '\t', '\n', '\r', '(', ')', '"'];
-		let need_quotes =
-			v.is_empty() || v.contains(CHARS) || v.chars().next().unwrap().is_ascii_digit();
+		let need_quotes = v.is_empty()
+			|| match aggressive_quotes {
+				true => v.chars().any(|ch| !ch.is_ascii_alphabetic() && ch != '_'),
+				false => v.contains(CHARS) || v.chars().next().unwrap().is_ascii_digit()
+			};
 
 		if need_quotes {
 			self.buf += r#"""#;
@@ -293,8 +296,8 @@ impl<'a> ser::Serializer for Field<'a> {
 	type Ok = ();
 	type Error = Error;
 
-	type SerializeSeq = Self;
-	type SerializeTuple = Self;
+	type SerializeSeq = Sequence<'a>;
+	type SerializeTuple = Sequence<'a>;
 	type SerializeTupleStruct = &'a mut Serializer;
 	type SerializeTupleVariant = Impossible;
 	type SerializeMap = Impossible;
@@ -337,7 +340,7 @@ impl<'a> ser::Serializer for Field<'a> {
 	}
 
 	fn serialize_str(self, v: &str) -> Result<()> {
-		self.ser.write_str(v);
+		self.ser.write_str(v, true);
 		Ok(())
 	}
 
@@ -362,7 +365,7 @@ impl<'a> ser::Serializer for Field<'a> {
 		_variant_index: u32,
 		variant: &'static str
 	) -> Result<()> {
-		self.ser.write_str(variant);
+		self.ser.write_str(variant, false);
 		Ok(())
 	}
 
@@ -373,16 +376,20 @@ impl<'a> ser::Serializer for Field<'a> {
 		self.ser.serialize_newtype_struct(name, value)
 	}
 
-	fn serialize_seq(self, _len: Option<usize>) -> Result<Self> {
+	fn serialize_seq(self, _len: Option<usize>) -> Result<Sequence<'a>> {
 		let name = self.name.ok_or(Error::UnnamedSeq)?;
-		self.ser.begin_sexpr(name);
-		Ok(self)
+		let close_sexpr = match name {
+			"" => false,
+			name => {
+				self.ser.begin_sexpr(name);
+				true
+			}
+		};
+		Ok(Sequence::new(self.ser, close_sexpr))
 	}
 
-	fn serialize_tuple(self, _len: usize) -> Result<Self> {
-		let name = self.name.ok_or(Error::UnnamedSeq)?;
-		self.ser.begin_sexpr(name);
-		Ok(self)
+	fn serialize_tuple(self, len: usize) -> Result<Sequence<'a>> {
+		self.serialize_seq(Some(len))
 	}
 
 	fn serialize_tuple_struct(self, name: &'static str, len: usize) -> Result<&'a mut Serializer> {
@@ -394,7 +401,19 @@ impl<'a> ser::Serializer for Field<'a> {
 	}
 }
 
-impl<'a> SerializeSeq for Field<'a> {
+/// A sequence / tuple serializer that optionally closes an s-expr afterwards
+struct Sequence<'a> {
+	ser: &'a mut Serializer,
+	close_sexpr: bool
+}
+
+impl<'a> Sequence<'a> {
+	fn new(ser: &'a mut Serializer, close_sexpr: bool) -> Self {
+		Self { ser, close_sexpr }
+	}
+}
+
+impl<'a> SerializeSeq for Sequence<'a> {
 	type Ok = ();
 	type Error = Error;
 
@@ -409,12 +428,14 @@ impl<'a> SerializeSeq for Field<'a> {
 	}
 
 	fn end(self) -> Result<()> {
-		self.ser.end_sexpr();
+		if self.close_sexpr {
+			self.ser.end_sexpr();
+		}
 		Ok(())
 	}
 }
 
-impl<'a> SerializeTuple for Field<'a> {
+impl<'a> SerializeTuple for Sequence<'a> {
 	type Ok = ();
 	type Error = Error;
 
@@ -422,14 +443,10 @@ impl<'a> SerializeTuple for Field<'a> {
 	where
 		T: ?Sized + Serialize
 	{
-		value.serialize(Field {
-			ser: &mut *self.ser,
-			name: None
-		})
+		SerializeSeq::serialize_element(self, value)
 	}
 
 	fn end(self) -> Result<()> {
-		self.ser.end_sexpr();
-		Ok(())
+		SerializeSeq::end(self)
 	}
 }

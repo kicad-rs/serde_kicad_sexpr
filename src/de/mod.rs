@@ -311,9 +311,27 @@ impl<'a, 'de> MapAccess<'de> for SExpr<'a, 'de> {
 		K: DeserializeSeed<'de>
 	{
 		self.check_eoe()?;
-		if self.index >= self.fields.len() {
-			return Ok(None);
+
+		loop {
+			if self.index >= self.fields.len() {
+				return Ok(None);
+			}
+
+			// special case: if the ident is empty ("") and we are set to skip it, don't even
+			// return the field.
+			if self.fields[self.index] == "" {
+				if let Some(skip_to) = self.skip_to {
+					if skip_to == self.index {
+						self.skip_to = None;
+					}
+					self.index += 1;
+					continue;
+				}
+			}
+
+			break;
 		}
+
 		seed.deserialize(FieldIdent(self.fields[self.index]))
 			.map(Some)
 	}
@@ -443,7 +461,8 @@ impl<'de> de::Deserializer<'de> for MissingField {
 /// we must return false without touching the input.
 ///
 /// We still store the ident if we know it, so that we can parse a sequence like
-/// (<ident> <values..>).
+/// (<ident> <values..>). The empty ident (`""`) is treated as a special case to consume
+/// the remaining fields of the current expression.
 struct Field<'a, 'de> {
 	de: &'a mut Deserializer<'de>,
 	ident: Option<&'static str>
@@ -560,7 +579,7 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 	where
 		V: Visitor<'de>
 	{
-		visitor.visit_seq(SExprTuple::new(self.de, name)?)
+		self.deserialize_tuple_struct(name, 1, visitor)
 	}
 
 	fn deserialize_tuple_struct<V>(
@@ -592,7 +611,13 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		V: Visitor<'de>
 	{
 		let ident = self.ident.ok_or(Error::MissingSExprInfo)?;
-		visitor.visit_seq(SExprTuple::new(self.de, ident)?)
+		match ident {
+			"" => {
+				// special case: we'll return the remaining tokens of the current s-expr
+				visitor.visit_seq(self)
+			},
+			_ => visitor.visit_seq(SExprTuple::new(self.de, ident)?)
+		}
 	}
 
 	fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
@@ -608,6 +633,21 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 
 	forward_to_deserialize_any! {
 		char bytes byte_buf unit map identifier ignored_any
+	}
+}
+
+impl<'a, 'de> SeqAccess<'de> for Field<'a, 'de> {
+	type Error = Error;
+
+	fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
+	where
+		T: DeserializeSeed<'de>
+	{
+		self.de.skip_whitespace();
+		if self.de.peek_char()? == ')' {
+			return Ok(None);
+		}
+		seed.deserialize(Field::new(self.de, None)).map(Some)
 	}
 }
 
