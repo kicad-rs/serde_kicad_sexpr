@@ -107,5 +107,5 @@ jobs:
           commit_message: "GitHub Pages for ${{github.sha}}"
           commit_user_name: "GitHub Actions"
           commit_user_email: "actions@github.com"
-          commit_atuhor: "GitHub Actions <actions@github.com>"
+          commit_author: "GitHub Actions <actions@github.com>"
   
