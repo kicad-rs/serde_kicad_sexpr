@@ -1001,7 +1001,7 @@
 			<span class="self">self</span>.<span class="ident">de</span>.<span class="ident">consume</span>(<span class="number">1</span>)<span class="question-mark">?</span>;
 			<span class="comment">// technically we&#39;re done, but there could be booleans that are false, so we&#39;ll</span>
 			<span class="comment">// deserialize those as None/false eventhough they don&#39;t exist in the input.</span>
-			<span class="self">self</span>.<span class="ident">skip_to</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">index</span> <span class="op">+</span> <span class="number">1</span>);
+			<span class="self">self</span>.<span class="ident">skip_to</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">fields</span>.<span class="ident">len</span>() <span class="op">+</span> <span class="number">1</span>);
 		}
 		<span class="prelude-val">Ok</span>(())
 	}
