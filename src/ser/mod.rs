@@ -101,9 +101,7 @@ impl Serializer {
 		let need_quotes = v.is_empty()
 			|| match aggressive_quotes {
 				true => v.chars().any(|ch| !ch.is_ascii_alphabetic() && ch != '_'),
-				false => {
-					v.contains(CHARS) || v.chars().next().unwrap().is_ascii_digit()
-				},
+				false => v.contains(CHARS)
 			};
 
 		if need_quotes {
