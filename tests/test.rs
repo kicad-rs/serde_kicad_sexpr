@@ -89,7 +89,7 @@ macro_rules! test_case {
 	};
 }
 
-// ################################################################################################
+// ##################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename = "locked")]
@@ -101,7 +101,7 @@ test_case! {
 	value: Locked
 }
 
-// ################################################################################################
+// ##################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename = "attr")]
@@ -113,7 +113,7 @@ test_case! {
 	value: Attribute("smd".to_owned())
 }
 
-// ################################################################################################
+// ##################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename = "descr")]
@@ -122,10 +122,12 @@ struct Description(String);
 test_case! {
 	name: descr,
 	input: r#"(descr "Hello \"World\", this \"\\\" is an amazing backspace! \\")"#,
-	value: Description(r#"Hello "World", this "\" is an amazing backspace! \"#.to_owned())
+	value: Description(
+		r#"Hello "World", this "\" is an amazing backspace! \"#.to_owned()
+	)
 }
 
-// ################################################################################################
+// ##################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename = "at")]
@@ -156,25 +158,51 @@ test_case! {
 	}
 }
 
-// ################################################################################################
+// ##################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename = "size")]
-struct Size {
-	width: f32,
-	height: f32
-}
+struct Size(f32, f32);
 
 test_case! {
 	name: size,
 	input: "(size 1.23 4.56)",
-	value: Size {
-		width: 1.23,
-		height: 4.56
+	value: Size(1.23, 4.56)
+}
+
+// ##################################################################################
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename = "thickness")]
+struct Thickness(f32);
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename = "font")]
+struct Font {
+	size: Size,
+
+	// This attribute enables our custom deserialize logic.
+	#[serde(with = "serde_sexpr::Option")]
+	thickness: Option<Thickness>,
+
+	bold: bool
+}
+
+test_case! {
+	name: font,
+	input: "(font (size 1.27 1.27))",
+	pretty: indoc!(r#"
+		(font
+		  (size 1.27 1.27))
+	"#),
+	value: Font {
+		size: Size(1.27, 1.27),
+		thickness: None,
+		bold: false
 	}
 }
 
-// ################################################################################################
+// ##################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 enum PadType {
@@ -232,10 +260,7 @@ test_case! {
 			y: 0.0,
 			rot: None
 		},
-		size: Size {
-			width: 1.27,
-			height: 1.27
-		},
+		size: Size(1.27, 1.27),
 		drill: None,
 		layers: vec!["F.Cu".to_owned()]
 	}
@@ -260,10 +285,7 @@ test_case! {
 			y: 0.0,
 			rot: None
 		},
-		size: Size {
-			width: 1.27,
-			height: 1.27
-		},
+		size: Size(1.27, 1.27),
 		drill: Some(Drill {
 			oval: false,
 			drill1: 0.635,
@@ -292,10 +314,7 @@ test_case! {
 			y: 0.0,
 			rot: None
 		},
-		size: Size {
-			width: 1.27,
-			height: 1.27
-		},
+		size: Size(1.27, 1.27),
 		drill: Some(Drill {
 			oval: true,
 			drill1: 0.635,
@@ -305,7 +324,7 @@ test_case! {
 	}
 }
 
-// ################################################################################################
+// ##################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename = "footprint")]
@@ -346,10 +365,7 @@ test_case! {
 				y: 0.0,
 				rot: None
 			},
-			size: Size {
-				width: 1.27,
-				height: 1.27
-			},
+			size: Size(1.27, 1.27),
 			drill: None,
 			layers: vec!["F.Cu".to_owned()]
 		}]
@@ -382,10 +398,7 @@ test_case! {
 					y: 0.0,
 					rot: None
 				},
-				size: Size {
-					width: 1.27,
-					height: 1.27
-				},
+				size: Size(1.27, 1.27),
 				drill: None,
 				layers: vec!["F.Cu".to_owned()]
 			},
@@ -398,10 +411,7 @@ test_case! {
 					y: 0.0,
 					rot: None
 				},
-				size: Size {
-					width: 1.27,
-					height: 1.27
-				},
+				size: Size(1.27, 1.27),
 				drill: None,
 				layers: vec!["F.Cu".to_owned()]
 			}

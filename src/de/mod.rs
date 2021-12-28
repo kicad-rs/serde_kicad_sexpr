@@ -276,7 +276,7 @@ impl<'a, 'de> SExpr<'a, 'de> {
 			self.de.consume(1)?;
 			// technically we're done, but there could be booleans that are false, so we'll
 			// deserialize those as None/false eventhough they don't exist in the input.
-			self.skip_to = Some(self.index + 1);
+			self.skip_to = Some(self.fields.len() + 1);
 		}
 		Ok(())
 	}
