@@ -723,6 +723,14 @@
 <span id="721">721</span>
 <span id="722">722</span>
 <span id="723">723</span>
+<span id="724">724</span>
+<span id="725">725</span>
+<span id="726">726</span>
+<span id="727">727</span>
+<span id="728">728</span>
+<span id="729">729</span>
+<span id="730">730</span>
+<span id="731">731</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">paste::paste</span>;
 <span class="kw">use</span> <span class="ident">serde</span>::{
 	<span class="ident">de</span>::{
@@ -1304,6 +1312,14 @@
 		<span class="ident">visitor</span>.<span class="ident">visit_map</span>(<span class="ident">SExpr::new</span>(<span class="self">self</span>.<span class="ident">de</span>, <span class="ident">name</span>, <span class="ident">fields</span>)<span class="question-mark">?</span>)
 	}
 
+	<span class="kw">fn</span> <span class="ident">deserialize_unit</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">visitor</span>: <span class="ident">V</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">V::Value</span><span class="op">&gt;</span>
+	<span class="kw">where</span>
+		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
+	{
+		<span class="kw">let</span> <span class="ident">ident</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ident</span>.<span class="ident">ok_or</span>(<span class="ident">Error::MissingSExprInfo</span>)<span class="question-mark">?</span>;
+		<span class="self">self</span>.<span class="ident">deserialize_unit_struct</span>(<span class="ident">ident</span>, <span class="ident">visitor</span>)
+	}
+
 	<span class="kw">fn</span> <span class="ident">deserialize_unit_struct</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
 		<span class="self">self</span>,
 		<span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>,
@@ -1380,7 +1396,7 @@
 	}
 
 	<span class="macro">forward_to_deserialize_any!</span> {
-		<span class="ident">char</span> <span class="ident">bytes</span> <span class="ident">byte_buf</span> <span class="ident">unit</span> <span class="ident">map</span> <span class="ident">identifier</span> <span class="ident">ignored_any</span>
+		<span class="ident">char</span> <span class="ident">bytes</span> <span class="ident">byte_buf</span> <span class="ident">map</span> <span class="ident">identifier</span> <span class="ident">ignored_any</span>
 	}
 }
 
