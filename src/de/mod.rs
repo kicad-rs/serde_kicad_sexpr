@@ -579,6 +579,14 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		visitor.visit_map(SExpr::new(self.de, name, fields)?)
 	}
 
+	fn deserialize_unit<V>(self, visitor: V) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		let ident = self.ident.ok_or(Error::MissingSExprInfo)?;
+		self.deserialize_unit_struct(ident, visitor)
+	}
+
 	fn deserialize_unit_struct<V>(
 		self,
 		name: &'static str,
@@ -655,7 +663,7 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 	}
 
 	forward_to_deserialize_any! {
-		char bytes byte_buf unit map identifier ignored_any
+		char bytes byte_buf map identifier ignored_any
 	}
 }
 

@@ -312,7 +312,6 @@ impl<'a> ser::Serializer for Field<'a> {
 	serialize_type_error! {
 		fn serialize_char(self, char) = Error::Char;
 		fn serialize_bytes(self, &[u8]) = Error::Bytes;
-		fn serialize_unit(self) = Error::Unit;
 		fn serialize_newtype_variant<T>(self, &'static str, u32, &'static str, &T) = Error::ComplexEnum;
 	}
 
@@ -358,6 +357,11 @@ impl<'a> ser::Serializer for Field<'a> {
 		T: ?Sized + Serialize
 	{
 		v.serialize(self)
+	}
+
+	fn serialize_unit(self) -> Result<()> {
+		let name = self.name.ok_or(Error::UnnamedUnit)?;
+		self.ser.serialize_unit_struct(name)
 	}
 
 	fn serialize_unit_struct(self, name: &'static str) -> Result<()> {

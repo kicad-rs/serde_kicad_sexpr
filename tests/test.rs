@@ -181,7 +181,6 @@ struct Thickness(f32);
 struct Font {
 	size: Size,
 
-	// This attribute enables our custom deserialize logic.
 	#[serde(with = "serde_sexpr::Option")]
 	thickness: Option<Thickness>,
 
@@ -199,6 +198,49 @@ test_case! {
 		size: Size(1.27, 1.27),
 		thickness: None,
 		bold: false
+	}
+}
+
+// ##################################################################################
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+#[serde(deny_unknown_fields, rename = "line")]
+struct Line {
+	start: (f32, f32),
+	end: (f32, f32),
+
+	#[serde(with = "serde_sexpr::Option")]
+	locked: Option<()>
+}
+
+test_case! {
+	name: line_unlocked,
+	input: "(line (start -2.54 1.27) (end 2.54 1.27))",
+	pretty: indoc!(r#"
+		(line
+		  (start -2.54 1.27)
+		  (end 2.54 1.27))
+	"#),
+	value: Line {
+		start: (-2.54, 1.27),
+		end: (2.54, 1.27),
+		locked: None
+	}
+}
+
+test_case! {
+	name: line_locked,
+	input: "(line (start -2.54 1.27) (end 2.54 1.27) (locked))",
+	pretty: indoc!(r#"
+		(line
+		  (start -2.54 1.27)
+		  (end 2.54 1.27)
+		  (locked))
+	"#),
+	value: Line {
+		start: (-2.54, 1.27),
+		end: (2.54, 1.27),
+		locked: Some(())
 	}
 }
 
