@@ -731,6 +731,15 @@
 <span id="729">729</span>
 <span id="730">730</span>
 <span id="731">731</span>
+<span id="732">732</span>
+<span id="733">733</span>
+<span id="734">734</span>
+<span id="735">735</span>
+<span id="736">736</span>
+<span id="737">737</span>
+<span id="738">738</span>
+<span id="739">739</span>
+<span id="740">740</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">paste::paste</span>;
 <span class="kw">use</span> <span class="ident">serde</span>::{
 	<span class="ident">de</span>::{
@@ -762,16 +771,18 @@
 {
 	<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">deserializer</span> <span class="op">=</span> <span class="ident">Deserializer::from_str</span>(<span class="ident">input</span>);
 	<span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">T::deserialize</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">deserializer</span>)<span class="question-mark">?</span>;
-
-	<span class="ident">deserializer</span>.<span class="ident">skip_whitespace</span>();
-	<span class="kw">if</span> <span class="op">!</span><span class="ident">deserializer</span>.<span class="ident">input</span>.<span class="ident">is_empty</span>() {
-		<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::TrailingTokens</span>);
-	}
-
 	<span class="prelude-val">Ok</span>(<span class="ident">value</span>)
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">Deserializer</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> {
+	<span class="kw">fn</span> <span class="ident">check_no_trailing_tokens</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
+		<span class="self">self</span>.<span class="ident">skip_whitespace</span>();
+		<span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">input</span>.<span class="ident">is_empty</span>() {
+			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::TrailingTokens</span>);
+		}
+		<span class="prelude-val">Ok</span>(())
+	}
+
 	<span class="kw">fn</span> <span class="ident">skip_whitespace</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) {
 		<span class="self">self</span>.<span class="ident">input</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">input</span>.<span class="ident">trim_start</span>();
 	}
@@ -921,7 +932,9 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="ident">visitor</span>.<span class="ident">visit_map</span>(<span class="ident">SExpr::new</span>(<span class="self">self</span>, <span class="ident">name</span>, <span class="ident">fields</span>)<span class="question-mark">?</span>)
+		<span class="kw">let</span> <span class="ident">v</span> <span class="op">=</span> <span class="ident">visitor</span>.<span class="ident">visit_map</span>(<span class="ident">SExpr::new</span>(<span class="self">self</span>, <span class="ident">name</span>, <span class="ident">fields</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+		<span class="self">self</span>.<span class="ident">check_no_trailing_tokens</span>()<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(<span class="ident">v</span>)
 	}
 
 	<span class="kw">fn</span> <span class="ident">deserialize_unit_struct</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -936,6 +949,7 @@
 		<span class="kw">if</span> <span class="self">self</span>.<span class="ident">next_char</span>()<span class="question-mark">?</span> <span class="op">!</span><span class="op">=</span> <span class="string">&#39;)&#39;</span> {
 			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedEoe</span>);
 		}
+		<span class="self">self</span>.<span class="ident">check_no_trailing_tokens</span>()<span class="question-mark">?</span>;
 		<span class="ident">visitor</span>.<span class="ident">visit_unit</span>()
 	}
 
@@ -947,7 +961,9 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="ident">visitor</span>.<span class="ident">visit_seq</span>(<span class="ident">SExprTuple::new</span>(<span class="self">self</span>, <span class="ident">name</span>)<span class="question-mark">?</span>)
+		<span class="kw">let</span> <span class="ident">v</span> <span class="op">=</span> <span class="ident">visitor</span>.<span class="ident">visit_seq</span>(<span class="ident">SExprTuple::new</span>(<span class="self">self</span>, <span class="ident">name</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+		<span class="self">self</span>.<span class="ident">check_no_trailing_tokens</span>()<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(<span class="ident">v</span>)
 	}
 
 	<span class="kw">fn</span> <span class="ident">deserialize_tuple_struct</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -959,7 +975,9 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="ident">visitor</span>.<span class="ident">visit_seq</span>(<span class="ident">SExprTuple::new</span>(<span class="self">self</span>, <span class="ident">name</span>)<span class="question-mark">?</span>)
+		<span class="kw">let</span> <span class="ident">v</span> <span class="op">=</span> <span class="ident">visitor</span>.<span class="ident">visit_seq</span>(<span class="ident">SExprTuple::new</span>(<span class="self">self</span>, <span class="ident">name</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+		<span class="self">self</span>.<span class="ident">check_no_trailing_tokens</span>()<span class="question-mark">?</span>;
+		<span class="prelude-val">Ok</span>(<span class="ident">v</span>)
 	}
 
 	<span class="macro">forward_to_deserialize_any!</span> {
