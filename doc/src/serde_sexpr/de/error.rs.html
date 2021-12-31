@@ -70,11 +70,17 @@
 <span id="68">68</span>
 <span id="69">69</span>
 <span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">serde::de</span>;
-<span class="kw">use</span> <span class="ident">std::fmt::Display</span>;
+<span class="kw">use</span> <span class="ident">std::fmt</span>::{<span class="self">self</span>, <span class="ident">Debug</span>, <span class="ident">Display</span>, <span class="ident">Formatter</span>};
 <span class="kw">use</span> <span class="ident">thiserror::Error</span>;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">Error</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Error</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Error</span> {
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;{0}&quot;</span>)]</span>
 	<span class="ident">Message</span>(<span class="ident">String</span>),
@@ -90,8 +96,8 @@
 
 	<span class="doccomment">/// This error will be returned if an opening s-expr was expected, but some other token was</span>
 	<span class="doccomment">/// found.</span>
-	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Expected s-expr&quot;</span>)]</span>
-	<span class="ident">ExpectedSExpr</span>,
+	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Expected s-expr, found token &#39;{0}&#39;&quot;</span>)]</span>
+	<span class="ident">ExpectedSExpr</span>(<span class="ident">char</span>),
 
 	<span class="doccomment">/// This error will be returned if an opening s-expr with a certain name was expected, but</span>
 	<span class="doccomment">/// some other token was found.</span>
@@ -122,8 +128,8 @@
 
 	<span class="doccomment">/// This error will be returned if an s-expr is found, but its name (and fields) were not</span>
 	<span class="doccomment">/// supplied to the deserializer (e.g. `deserialize_any` was called).</span>
-	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Missing s-expr type info&quot;</span>)]</span>
-	<span class="ident">MissingSExprInfo</span>,
+	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Missing s-expr type info for {0}&quot;</span>)]</span>
+	<span class="ident">MissingSExprInfo</span>(<span class="ident">String</span>),
 
 	<span class="doccomment">/// This error will be returned when attempting to deserialize a non-unit enum variant.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Non-unit enum variants are not supported&quot;</span>)]</span>
@@ -133,6 +139,12 @@
 	<span class="doccomment">/// finished.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Trailing tokens&quot;</span>)]</span>
 	<span class="ident">TrailingTokens</span>
+}
+
+<span class="kw">impl</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">Error</span> {
+	<span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="ident">Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) -&gt; <span class="ident">fmt::Result</span> {
+		<span class="ident">Display::fmt</span>(<span class="self">self</span>, <span class="ident">f</span>)
+	}
 }
 
 <span class="kw">impl</span> <span class="ident">de::Error</span> <span class="kw">for</span> <span class="ident">Error</span> {

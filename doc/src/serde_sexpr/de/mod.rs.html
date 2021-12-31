@@ -741,6 +741,23 @@
 <span id="739">739</span>
 <span id="740">740</span>
 <span id="741">741</span>
+<span id="742">742</span>
+<span id="743">743</span>
+<span id="744">744</span>
+<span id="745">745</span>
+<span id="746">746</span>
+<span id="747">747</span>
+<span id="748">748</span>
+<span id="749">749</span>
+<span id="750">750</span>
+<span id="751">751</span>
+<span id="752">752</span>
+<span id="753">753</span>
+<span id="754">754</span>
+<span id="755">755</span>
+<span id="756">756</span>
+<span id="757">757</span>
+<span id="758">758</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">paste::paste</span>;
 <span class="kw">use</span> <span class="ident">serde</span>::{
 	<span class="ident">de</span>::{
@@ -813,8 +830,9 @@
 
 	<span class="kw">fn</span> <span class="ident">peek_sexpr_identifier</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;de</span> <span class="ident">str</span><span class="op">&gt;</span> {
 		<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">chars</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">input</span>.<span class="ident">chars</span>();
-		<span class="kw">if</span> <span class="ident">chars</span>.<span class="ident">next</span>().<span class="ident">ok_or</span>(<span class="ident">Error::Eof</span>)<span class="question-mark">?</span> <span class="op">!</span><span class="op">=</span> <span class="string">&#39;(&#39;</span> {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedSExpr</span>);
+		<span class="kw">let</span> <span class="ident">next</span> <span class="op">=</span> <span class="ident">chars</span>.<span class="ident">next</span>().<span class="ident">ok_or</span>(<span class="ident">Error::Eof</span>)<span class="question-mark">?</span>;
+		<span class="kw">if</span> <span class="ident">next</span> <span class="op">!</span><span class="op">=</span> <span class="string">&#39;(&#39;</span> {
+			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedSExpr</span>(<span class="ident">next</span>));
 		}
 		<span class="kw">let</span> <span class="ident">paren</span> <span class="op">=</span> <span class="string">&#39;(&#39;</span>.<span class="ident">len_utf8</span>();
 		<span class="kw">let</span> <span class="ident">len</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">chars</span>
@@ -1280,7 +1298,9 @@
 			<span class="string">&#39;(&#39;</span> <span class="kw">if</span> <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">de</span>.<span class="ident">peek_sexpr_identifier</span>()<span class="question-mark">?</span>) <span class="op">==</span> <span class="self">self</span>.<span class="ident">ident</span> =&gt; {
 				<span class="self">self</span>.<span class="ident">deserialize_seq</span>(<span class="ident">visitor</span>)
 			},
-			<span class="string">&#39;(&#39;</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">Error::MissingSExprInfo</span>),
+			<span class="string">&#39;(&#39;</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">Error::MissingSExprInfo</span>(
+				<span class="self">self</span>.<span class="ident">de</span>.<span class="ident">peek_sexpr_identifier</span>()<span class="question-mark">?</span>.<span class="ident">to_owned</span>()
+			)),
 			<span class="kw">_</span> =&gt; <span class="self">self</span>.<span class="ident">deserialize_string</span>(<span class="ident">visitor</span>)
 		}
 	}
@@ -1336,7 +1356,14 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="kw">let</span> <span class="ident">ident</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ident</span>.<span class="ident">ok_or</span>(<span class="ident">Error::MissingSExprInfo</span>)<span class="question-mark">?</span>;
+		<span class="kw">let</span> <span class="ident">ident</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">ident</span> {
+			<span class="prelude-val">Some</span>(<span class="ident">ident</span>) =&gt; <span class="ident">ident</span>,
+			<span class="prelude-val">None</span> =&gt; {
+				<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::MissingSExprInfo</span>(
+					<span class="self">self</span>.<span class="ident">de</span>.<span class="ident">peek_sexpr_identifier</span>()<span class="question-mark">?</span>.<span class="ident">to_owned</span>()
+				));
+			}
+		};
 		<span class="self">self</span>.<span class="ident">deserialize_unit_struct</span>(<span class="ident">ident</span>, <span class="ident">visitor</span>)
 	}
 
@@ -1394,7 +1421,14 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="kw">let</span> <span class="ident">ident</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ident</span>.<span class="ident">ok_or</span>(<span class="ident">Error::MissingSExprInfo</span>)<span class="question-mark">?</span>;
+		<span class="kw">let</span> <span class="ident">ident</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">ident</span> {
+			<span class="prelude-val">Some</span>(<span class="ident">ident</span>) =&gt; <span class="ident">ident</span>,
+			<span class="prelude-val">None</span> =&gt; {
+				<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::MissingSExprInfo</span>(
+					<span class="self">self</span>.<span class="ident">de</span>.<span class="ident">peek_sexpr_identifier</span>()<span class="question-mark">?</span>.<span class="ident">to_owned</span>()
+				));
+			}
+		};
 		<span class="kw">match</span> <span class="ident">ident</span> {
 			<span class="string">&quot;&quot;</span> =&gt; {
 				<span class="comment">// special case: we&#39;ll return the remaining tokens of the current s-expr</span>
