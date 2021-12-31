@@ -1,8 +1,8 @@
 use serde::de;
-use std::fmt::Display;
+use std::fmt::{self, Debug, Display, Formatter};
 use thiserror::Error;
 
-#[derive(Clone, Debug, Error, PartialEq)]
+#[derive(Clone, Error, PartialEq)]
 pub enum Error {
 	#[error("{0}")]
 	Message(String),
@@ -18,8 +18,8 @@ pub enum Error {
 
 	/// This error will be returned if an opening s-expr was expected, but some other token was
 	/// found.
-	#[error("Expected s-expr")]
-	ExpectedSExpr,
+	#[error("Expected s-expr, found token '{0}'")]
+	ExpectedSExpr(char),
 
 	/// This error will be returned if an opening s-expr with a certain name was expected, but
 	/// some other token was found.
@@ -50,8 +50,8 @@ pub enum Error {
 
 	/// This error will be returned if an s-expr is found, but its name (and fields) were not
 	/// supplied to the deserializer (e.g. `deserialize_any` was called).
-	#[error("Missing s-expr type info")]
-	MissingSExprInfo,
+	#[error("Missing s-expr type info for {0}")]
+	MissingSExprInfo(String),
 
 	/// This error will be returned when attempting to deserialize a non-unit enum variant.
 	#[error("Non-unit enum variants are not supported")]
@@ -61,6 +61,12 @@ pub enum Error {
 	/// finished.
 	#[error("Trailing tokens")]
 	TrailingTokens
+}
+
+impl Debug for Error {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		Display::fmt(self, f)
+	}
 }
 
 impl de::Error for Error {

@@ -70,8 +70,9 @@ impl<'de> Deserializer<'de> {
 
 	fn peek_sexpr_identifier(&mut self) -> Result<&'de str> {
 		let mut chars = self.input.chars();
-		if chars.next().ok_or(Error::Eof)? != '(' {
-			return Err(Error::ExpectedSExpr);
+		let next = chars.next().ok_or(Error::Eof)?;
+		if next != '(' {
+			return Err(Error::ExpectedSExpr(next));
 		}
 		let paren = '('.len_utf8();
 		let len: usize = chars
@@ -537,7 +538,9 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 			'(' if Some(self.de.peek_sexpr_identifier()?) == self.ident => {
 				self.deserialize_seq(visitor)
 			},
-			'(' => Err(Error::MissingSExprInfo),
+			'(' => Err(Error::MissingSExprInfo(
+				self.de.peek_sexpr_identifier()?.to_owned()
+			)),
 			_ => self.deserialize_string(visitor)
 		}
 	}
@@ -593,7 +596,14 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 	where
 		V: Visitor<'de>
 	{
-		let ident = self.ident.ok_or(Error::MissingSExprInfo)?;
+		let ident = match self.ident {
+			Some(ident) => ident,
+			None => {
+				return Err(Error::MissingSExprInfo(
+					self.de.peek_sexpr_identifier()?.to_owned()
+				));
+			}
+		};
 		self.deserialize_unit_struct(ident, visitor)
 	}
 
@@ -651,7 +661,14 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 	where
 		V: Visitor<'de>
 	{
-		let ident = self.ident.ok_or(Error::MissingSExprInfo)?;
+		let ident = match self.ident {
+			Some(ident) => ident,
+			None => {
+				return Err(Error::MissingSExprInfo(
+					self.de.peek_sexpr_identifier()?.to_owned()
+				));
+			}
+		};
 		match ident {
 			"" => {
 				// special case: we'll return the remaining tokens of the current s-expr
