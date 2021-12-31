@@ -101,6 +101,16 @@ test_case! {
 	value: Locked
 }
 
+#[test]
+fn test_deserialize_locked_trailing_tokens() {
+	let input = "(locked))";
+	let result = serde_sexpr::from_str::<Locked>(input);
+	assert!(matches!(
+		result,
+		Err(serde_sexpr::de::Error::TrailingTokens)
+	));
+}
+
 // ##################################################################################
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]

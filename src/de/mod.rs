@@ -29,16 +29,18 @@ where
 {
 	let mut deserializer = Deserializer::from_str(input);
 	let value = T::deserialize(&mut deserializer)?;
-
-	deserializer.skip_whitespace();
-	if !deserializer.input.is_empty() {
-		return Err(Error::TrailingTokens);
-	}
-
 	Ok(value)
 }
 
 impl<'de> Deserializer<'de> {
+	fn check_no_trailing_tokens(&mut self) -> Result<()> {
+		self.skip_whitespace();
+		if !self.input.is_empty() {
+			return Err(Error::TrailingTokens);
+		}
+		Ok(())
+	}
+
 	fn skip_whitespace(&mut self) {
 		self.input = self.input.trim_start();
 	}
@@ -188,7 +190,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 	where
 		V: Visitor<'de>
 	{
-		visitor.visit_map(SExpr::new(self, name, fields)?)
+		let v = visitor.visit_map(SExpr::new(self, name, fields)?)?;
+		self.check_no_trailing_tokens()?;
+		Ok(v)
 	}
 
 	fn deserialize_unit_struct<V>(
@@ -203,6 +207,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 		if self.next_char()? != ')' {
 			return Err(Error::ExpectedEoe);
 		}
+		self.check_no_trailing_tokens()?;
 		visitor.visit_unit()
 	}
 
@@ -214,7 +219,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 	where
 		V: Visitor<'de>
 	{
-		visitor.visit_seq(SExprTuple::new(self, name)?)
+		let v = visitor.visit_seq(SExprTuple::new(self, name)?)?;
+		self.check_no_trailing_tokens()?;
+		Ok(v)
 	}
 
 	fn deserialize_tuple_struct<V>(
@@ -226,7 +233,9 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 	where
 		V: Visitor<'de>
 	{
-		visitor.visit_seq(SExprTuple::new(self, name)?)
+		let v = visitor.visit_seq(SExprTuple::new(self, name)?)?;
+		self.check_no_trailing_tokens()?;
+		Ok(v)
 	}
 
 	forward_to_deserialize_any! {
