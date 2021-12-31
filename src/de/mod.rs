@@ -32,6 +32,13 @@ where
 	Ok(value)
 }
 
+enum Token {
+	String,
+	Int,
+	Float,
+	SExpr
+}
+
 impl<'de> Deserializer<'de> {
 	fn check_no_trailing_tokens(&mut self) -> Result<()> {
 		self.skip_whitespace();
@@ -45,7 +52,7 @@ impl<'de> Deserializer<'de> {
 		self.input = self.input.trim_start();
 	}
 
-	fn peek_char(&mut self) -> Result<char> {
+	fn peek_char(&self) -> Result<char> {
 		self.input.chars().next().ok_or(Error::Eof)
 	}
 
@@ -55,7 +62,33 @@ impl<'de> Deserializer<'de> {
 		Ok(ch)
 	}
 
-	fn peek_identifier(&mut self) -> Option<&'de str> {
+	fn peek_token(&self) -> Result<Token> {
+		let mut chars = self.input.chars().peekable();
+		if chars.peek().is_none() {
+			return Err(Error::Eof);
+		}
+
+		let mut int = true;
+		while let Some(ch) = chars.next() {
+			match ch {
+				'(' => return Ok(Token::SExpr),
+				'.' => {
+					int = false;
+				},
+				'-' => {},
+				ch if ch.is_ascii_whitespace() => break,
+				ch if ch.is_ascii_digit() => {},
+				_ => return Ok(Token::String)
+			};
+		}
+
+		Ok(match int {
+			true => Token::Int,
+			false => Token::Float
+		})
+	}
+
+	fn peek_identifier(&self) -> Option<&'de str> {
 		let len: usize = self
 			.input
 			.chars()
@@ -68,7 +101,7 @@ impl<'de> Deserializer<'de> {
 		Some(&self.input[..len])
 	}
 
-	fn peek_sexpr_identifier(&mut self) -> Result<&'de str> {
+	fn peek_sexpr_identifier(&self) -> Result<&'de str> {
 		let mut chars = self.input.chars();
 		let next = chars.next().ok_or(Error::Eof)?;
 		if next != '(' {
@@ -101,7 +134,7 @@ impl<'de> Deserializer<'de> {
 		let len = self
 			.input
 			.chars()
-			.take_while(|ch| ch.is_ascii_digit() || *ch == '-' || *ch == '.')
+			.take_while(|ch| !ch.is_ascii_whitespace() && *ch != ')')
 			.map(|ch| ch.len_utf8())
 			.sum();
 		if len == 0 {
@@ -521,27 +554,19 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 	where
 		V: Visitor<'de>
 	{
-		match self.de.peek_char()? {
-			ch @ '0'..='9' | ch @ '-' | ch @ '.' => match self.de.input.find('.') {
-				Some(idx)
-					if (&self.de.input[..idx])
-						.contains(|ch: char| ch.is_ascii_whitespace()) =>
-				{
-					if ch == '-' {
-						self.deserialize_i64(visitor)
-					} else {
-						self.deserialize_u64(visitor)
-					}
-				},
-				_ => self.deserialize_f32(visitor)
+		match self.de.peek_token()? {
+			Token::Int if self.de.peek_char()? == '-' => {
+				self.deserialize_i64(visitor)
 			},
-			'(' if Some(self.de.peek_sexpr_identifier()?) == self.ident => {
+			Token::Int => self.deserialize_u64(visitor),
+			Token::Float => self.deserialize_f64(visitor),
+			Token::String => self.deserialize_string(visitor),
+			Token::SExpr if Some(self.de.peek_sexpr_identifier()?) == self.ident => {
 				self.deserialize_seq(visitor)
 			},
-			'(' => Err(Error::MissingSExprInfo(
+			Token::SExpr => Err(Error::MissingSExprInfo(
 				self.de.peek_sexpr_identifier()?.to_owned()
-			)),
-			_ => self.deserialize_string(visitor)
+			))
 		}
 	}
 
