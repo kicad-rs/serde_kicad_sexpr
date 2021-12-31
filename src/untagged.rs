@@ -1,4 +1,4 @@
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! untagged {
 	(
 		$(#[$attr:meta])*
@@ -29,7 +29,7 @@ macro_rules! untagged {
 			{
 				static VARIANTS: $crate::private::SyncLazy<
 					::std::result::Result<
-						[&'static str; $crate::count!($($variant)+)],
+						[&'static str; count!($($variant)+)],
 						::std::string::String
 					>
 				> = $crate::private::SyncLazy::new(|| ::std::result::Result::Ok([$({
@@ -87,7 +87,7 @@ macro_rules! untagged {
 				}
 
 				deserializer.deserialize_enum(
-					stringify!($name),
+					std::stringify!($name),
 					variants,
 					Visitor(variants)
 				)
@@ -96,7 +96,7 @@ macro_rules! untagged {
 	};
 }
 
-#[macro_export]
+#[macro_export(local_inner_macros)]
 #[doc(hidden)]
 macro_rules! count {
 	() => {
