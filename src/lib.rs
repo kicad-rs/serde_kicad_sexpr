@@ -3,8 +3,12 @@
 
 mod literal;
 mod option;
+#[macro_use]
+mod untagged;
 
 pub mod de;
+#[doc(hidden)]
+pub mod private;
 pub mod ser;
 
 pub use de::from_str;

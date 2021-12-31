@@ -272,9 +272,87 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 		Ok(v)
 	}
 
+	fn deserialize_enum<V>(
+		self,
+		_name: &'static str,
+		_variants: &'static [&'static str],
+		visitor: V
+	) -> Result<V::Value>
+	where
+		V: Visitor<'de>
+	{
+		let v = visitor.visit_enum(Enum::new(self))?;
+		self.check_no_trailing_tokens()?;
+		Ok(v)
+	}
+
 	forward_to_deserialize_any! {
 		bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string
-		bytes byte_buf option unit seq tuple map enum identifier ignored_any
+		bytes byte_buf option unit seq tuple map identifier ignored_any
+	}
+}
+
+/// Deserialize an enum with only newtype variants whose variant names match the
+/// names of the contained s-exprs.
+struct Enum<'a, 'de> {
+	de: &'a mut Deserializer<'de>
+}
+
+impl<'a, 'de> Enum<'a, 'de> {
+	fn new(de: &'a mut Deserializer<'de>) -> Self {
+		Self { de }
+	}
+}
+
+impl<'a, 'de> EnumAccess<'de> for Enum<'a, 'de> {
+	type Error = Error;
+	type Variant = Self;
+
+	fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant)>
+	where
+		V: DeserializeSeed<'de>
+	{
+		Ok((
+			seed.deserialize(FieldIdent(self.de.peek_sexpr_identifier()?))?,
+			self
+		))
+	}
+}
+
+impl<'a, 'de> VariantAccess<'de> for Enum<'a, 'de> {
+	type Error = Error;
+
+	fn unit_variant(self) -> Result<(), Self::Error> {
+		Err(Error::NonNewtypeEnumVariant)
+	}
+
+	fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
+	where
+		T: DeserializeSeed<'de>
+	{
+		seed.deserialize(self.de)
+	}
+
+	fn tuple_variant<V>(
+		self,
+		_len: usize,
+		_visitor: V
+	) -> Result<V::Value, Self::Error>
+	where
+		V: Visitor<'de>
+	{
+		Err(Error::NonNewtypeEnumVariant)
+	}
+
+	fn struct_variant<V>(
+		self,
+		_fields: &'static [&'static str],
+		_visitor: V
+	) -> Result<V::Value, Self::Error>
+	where
+		V: Visitor<'de>
+	{
+		Err(Error::NonNewtypeEnumVariant)
 	}
 }
 
@@ -449,9 +527,12 @@ impl<'a, 'de> SeqAccess<'de> for SExprTuple<'a, 'de> {
 }
 
 /// Deserialize a field's ident.
-struct FieldIdent(&'static str);
+struct FieldIdent<'a>(&'a str);
 
-impl<'de> de::Deserializer<'de> for FieldIdent {
+impl<'a, 'de> de::Deserializer<'de> for FieldIdent<'a>
+where
+	'a: 'de
+{
 	type Error = Error;
 
 	fn deserialize_any<V>(self, visitor: V) -> Result<V::Value>
@@ -736,13 +817,22 @@ impl<'a, 'de> SeqAccess<'de> for Field<'a, 'de> {
 
 impl<'a, 'de> EnumAccess<'de> for Field<'a, 'de> {
 	type Error = Error;
-	type Variant = UnitVariant;
+	type Variant = Either<UnitVariant, NewtypeVariant<'a, 'de>>;
 
 	fn variant_seed<V>(self, seed: V) -> Result<(V::Value, Self::Variant)>
 	where
 		V: DeserializeSeed<'de>
 	{
-		Ok((seed.deserialize(self)?, UnitVariant))
+		Ok(match self.de.peek_token()? {
+			Token::SExpr => {
+				let str = self.de.peek_sexpr_identifier()?;
+				(
+					seed.deserialize(FieldIdent(str))?,
+					Either::Right(NewtypeVariant { de: self.de })
+				)
+			},
+			_ => (seed.deserialize(self)?, Either::Left(UnitVariant))
+		})
 	}
 }
 
@@ -779,5 +869,106 @@ impl<'de> VariantAccess<'de> for UnitVariant {
 		V: Visitor<'de>
 	{
 		Err(Error::NonUnitEnumVariant)
+	}
+}
+
+/// This will deserialize only newtype variants.
+struct NewtypeVariant<'a, 'de> {
+	de: &'a mut Deserializer<'de>
+}
+
+impl<'a, 'de> VariantAccess<'de> for NewtypeVariant<'a, 'de> {
+	type Error = Error;
+
+	fn unit_variant(self) -> Result<(), Self::Error> {
+		Err(Error::NonNewtypeEnumVariant)
+	}
+
+	fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
+	where
+		T: DeserializeSeed<'de>
+	{
+		seed.deserialize(Field::new(self.de, None))
+	}
+
+	fn tuple_variant<V>(
+		self,
+		_len: usize,
+		_visitor: V
+	) -> Result<V::Value, Self::Error>
+	where
+		V: Visitor<'de>
+	{
+		Err(Error::NonNewtypeEnumVariant)
+	}
+
+	fn struct_variant<V>(
+		self,
+		_fields: &'static [&'static str],
+		_visitor: V
+	) -> Result<V::Value, Self::Error>
+	where
+		V: Visitor<'de>
+	{
+		Err(Error::NonNewtypeEnumVariant)
+	}
+}
+
+/// An `Either` type for `VariantAccess`.
+enum Either<L, R> {
+	Left(L),
+	Right(R)
+}
+
+impl<'de, L, R> VariantAccess<'de> for Either<L, R>
+where
+	L: VariantAccess<'de>,
+	R: VariantAccess<'de, Error = L::Error>
+{
+	type Error = L::Error;
+
+	fn unit_variant(self) -> Result<(), Self::Error> {
+		match self {
+			Self::Left(l) => l.unit_variant(),
+			Self::Right(r) => r.unit_variant()
+		}
+	}
+
+	fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
+	where
+		T: DeserializeSeed<'de>
+	{
+		match self {
+			Self::Left(l) => l.newtype_variant_seed(seed),
+			Self::Right(r) => r.newtype_variant_seed(seed)
+		}
+	}
+
+	fn tuple_variant<V>(
+		self,
+		len: usize,
+		visitor: V
+	) -> Result<V::Value, Self::Error>
+	where
+		V: Visitor<'de>
+	{
+		match self {
+			Self::Left(l) => l.tuple_variant(len, visitor),
+			Self::Right(r) => r.tuple_variant(len, visitor)
+		}
+	}
+
+	fn struct_variant<V>(
+		self,
+		fields: &'static [&'static str],
+		visitor: V
+	) -> Result<V::Value, Self::Error>
+	where
+		V: Visitor<'de>
+	{
+		match self {
+			Self::Left(l) => l.struct_variant(fields, visitor),
+			Self::Right(r) => r.struct_variant(fields, visitor)
+		}
 	}
 }
