@@ -150,7 +150,7 @@
 <span id="148">148</span>
 <span id="149">149</span>
 <span id="150">150</span>
-</pre><pre class="rust"><code><span class="attribute">#[<span class="ident">macro_export</span>]</span>
+</pre><pre class="rust"><code><span class="attribute">#[<span class="ident">macro_export</span>(<span class="ident">local_inner_macros</span>)]</span>
 <span class="macro">macro_rules!</span> <span class="ident">untagged</span> {
 	(
 		$(<span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">attr</span>:<span class="ident">meta</span>]</span>)<span class="op">*</span>
@@ -239,7 +239,7 @@
 				}
 
 				<span class="ident">deserializer</span>.<span class="ident">deserialize_enum</span>(
-					<span class="macro">stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>),
+					<span class="macro">std::stringify!</span>(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">name</span>),
 					<span class="ident">variants</span>,
 					<span class="ident">Visitor</span>(<span class="ident">variants</span>)
 				)
