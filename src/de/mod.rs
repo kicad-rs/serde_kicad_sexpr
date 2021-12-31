@@ -258,8 +258,9 @@ impl<'a, 'de> SExpr<'a, 'de> {
 		name: &'static str
 	) -> Result<()> {
 		de.skip_whitespace();
-		if de.peek_sexpr_identifier()? != name {
-			return Err(Error::ExpectedSExprIdentifier(name));
+		let peek = de.peek_sexpr_identifier()?;
+		if peek != name {
+			return Err(Error::ExpectedSExprIdentifier(name, peek.to_owned()));
 		}
 		de.consume(name.len() + '('.len_utf8())?;
 		Ok(())

@@ -23,8 +23,8 @@ pub enum Error {
 
 	/// This error will be returned if an opening s-expr with a certain name was expected, but
 	/// some other token was found.
-	#[error("Expected s-expr identifier {0}")]
-	ExpectedSExprIdentifier(&'static str),
+	#[error("Expected s-expr identifier {0}, found {1}")]
+	ExpectedSExprIdentifier(&'static str, String),
 
 	/// This error will be returned if the end of the s-expr was expected, but some other token
 	/// was found.
