@@ -1,4 +1,4 @@
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! untagged {
 	(
 		$(#[$attr:meta])*
@@ -87,7 +87,7 @@ macro_rules! untagged {
 				}
 
 				deserializer.deserialize_enum(
-					stringify!($name),
+					std::stringify!($name),
 					variants,
 					Visitor(variants)
 				)
