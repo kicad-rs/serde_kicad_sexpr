@@ -76,6 +76,15 @@
 <span id="74">74</span>
 <span id="75">75</span>
 <span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">serde::de</span>;
 <span class="kw">use</span> <span class="ident">std::fmt</span>::{<span class="self">self</span>, <span class="ident">Debug</span>, <span class="ident">Display</span>, <span class="ident">Formatter</span>};
 <span class="kw">use</span> <span class="ident">thiserror::Error</span>;
@@ -85,8 +94,8 @@
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;{0}&quot;</span>)]</span>
 	<span class="ident">Message</span>(<span class="ident">String</span>),
 
-	<span class="doccomment">/// This error will be returned if you request to deserialize anything but a struct at root</span>
-	<span class="doccomment">/// level.</span>
+	<span class="doccomment">/// This error will be returned if you request to deserialize anything but a</span>
+	<span class="doccomment">/// struct at root level.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Expected to deserialize a struct at root level&quot;</span>)]</span>
 	<span class="ident">ExpectedStruct</span>,
 
@@ -94,45 +103,54 @@
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Unexpected end of input&quot;</span>)]</span>
 	<span class="ident">Eof</span>,
 
-	<span class="doccomment">/// This error will be returned if an opening s-expr was expected, but some other token was</span>
-	<span class="doccomment">/// found.</span>
+	<span class="doccomment">/// This error will be returned if an opening s-expr was expected, but some</span>
+	<span class="doccomment">/// other token was found.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Expected s-expr, found token &#39;{0}&#39;&quot;</span>)]</span>
 	<span class="ident">ExpectedSExpr</span>(<span class="ident">char</span>),
 
-	<span class="doccomment">/// This error will be returned if an opening s-expr with a certain name was expected, but</span>
-	<span class="doccomment">/// some other token was found.</span>
+	<span class="doccomment">/// This error will be returned if an opening s-expr with a certain name was</span>
+	<span class="doccomment">/// expected, but some other token was found.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Expected s-expr identifier {0}, found {1}&quot;</span>)]</span>
 	<span class="ident">ExpectedSExprIdentifier</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>, <span class="ident">String</span>),
 
-	<span class="doccomment">/// This error will be returned if the end of the s-expr was expected, but some other token</span>
-	<span class="doccomment">/// was found.</span>
+	<span class="doccomment">/// This error will be returned if the end of the s-expr was expected, but some</span>
+	<span class="doccomment">/// other token was found.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Expected end of expression&quot;</span>)]</span>
 	<span class="ident">ExpectedEoe</span>,
 
-	<span class="doccomment">/// This error will be returned if an identifier was expected, but some other token was found.</span>
+	<span class="doccomment">/// This error will be returned if an identifier was expected, but some other</span>
+	<span class="doccomment">/// token was found.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Expected identifier&quot;</span>)]</span>
 	<span class="ident">ExpectedIdentifier</span>,
 
-	<span class="doccomment">/// This error will be returned if a number was expected, but some other token was found.</span>
+	<span class="doccomment">/// This error will be returned if a number was expected, but some other token</span>
+	<span class="doccomment">/// was found.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Expected number&quot;</span>)]</span>
 	<span class="ident">ExpectedNumber</span>,
 
-	<span class="doccomment">/// This error will be returned if a string was expected, but some other token was found.</span>
+	<span class="doccomment">/// This error will be returned if a string was expected, but some other token</span>
+	<span class="doccomment">/// was found.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Expected string&quot;</span>)]</span>
 	<span class="ident">ExpectedString</span>,
 
-	<span class="doccomment">/// This error will be returned if an option was requested. [`Option`] is **not supported**</span>
-	<span class="doccomment">/// by this data format.</span>
+	<span class="doccomment">/// This error will be returned if an option was requested. [`Option`] is</span>
+	<span class="doccomment">/// **not supported** by this data format.</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;std::option::Option cannot be deserialized by this data format&quot;</span>)]</span>
 	<span class="ident">DeserializeOption</span>,
 
-	<span class="doccomment">/// This error will be returned if an s-expr is found, but its name (and fields) were not</span>
-	<span class="doccomment">/// supplied to the deserializer (e.g. `deserialize_any` was called).</span>
+	<span class="doccomment">/// This error will be returned if an s-expr is found, but its name (and fields)</span>
+	<span class="doccomment">/// were not supplied to the deserializer (e.g. `deserialize_any` was called).</span>
 	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Missing s-expr type info for {0}&quot;</span>)]</span>
 	<span class="ident">MissingSExprInfo</span>(<span class="ident">String</span>),
 
-	<span class="doccomment">/// This error will be returned when attempting to deserialize a non-unit enum variant.</span>
-	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Non-unit enum variants are not supported&quot;</span>)]</span>
+	<span class="doccomment">/// This error will be returned when attempting to deserialize a non-newtype</span>
+	<span class="doccomment">/// enum variant in a tagged way.</span>
+	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Non-newtype enum variants are not supported in tagged format&quot;</span>)]</span>
+	<span class="ident">NonNewtypeEnumVariant</span>,
+
+	<span class="doccomment">/// This error will be returned when attempting to deserialize a non-unit enum</span>
+	<span class="doccomment">/// variant in an untagged way.</span>
+	<span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Non-unit enum variants are not supported in untagged format&quot;</span>)]</span>
 	<span class="ident">NonUnitEnumVariant</span>,
 
 	<span class="doccomment">/// This error will be returned if there were trailing tokens after the deserialization</span>
