@@ -974,6 +974,31 @@
 <span id="972">972</span>
 <span id="973">973</span>
 <span id="974">974</span>
+<span id="975">975</span>
+<span id="976">976</span>
+<span id="977">977</span>
+<span id="978">978</span>
+<span id="979">979</span>
+<span id="980">980</span>
+<span id="981">981</span>
+<span id="982">982</span>
+<span id="983">983</span>
+<span id="984">984</span>
+<span id="985">985</span>
+<span id="986">986</span>
+<span id="987">987</span>
+<span id="988">988</span>
+<span id="989">989</span>
+<span id="990">990</span>
+<span id="991">991</span>
+<span id="992">992</span>
+<span id="993">993</span>
+<span id="994">994</span>
+<span id="995">995</span>
+<span id="996">996</span>
+<span id="997">997</span>
+<span id="998">998</span>
+<span id="999">999</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">paste::paste</span>;
 <span class="kw">use</span> <span class="ident">serde</span>::{
 	<span class="ident">de</span>::{
@@ -985,7 +1010,32 @@
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">borrow::Cow</span>, <span class="ident">fmt::Display</span>, <span class="ident">str::FromStr</span>};
 
 <span class="kw">mod</span> <span class="ident">error</span>;
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">error::Error</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">error</span>::{<span class="ident">Error</span>, <span class="ident">ErrorKind</span>};
+
+<span class="macro">macro_rules!</span> <span class="ident">error</span> {
+	(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">kind</span>:<span class="ident">ident</span> $(($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>:<span class="ident">expr</span>),<span class="op">+</span>))<span class="question-mark">?</span>) =&gt; {
+		{
+			<span class="ident">Error</span> {
+				<span class="ident">kind</span>: <span class="ident">ErrorKind</span>::<span class="macro-nonterminal">$</span><span class="macro-nonterminal">kind</span> $(($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">arg</span>),<span class="op">+</span>))<span class="question-mark">?</span>,
+				<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;backtrace&quot;</span>)]</span>
+				<span class="ident">backtrace</span>: {
+					<span class="kw">let</span> <span class="ident">bt</span> <span class="op">=</span> <span class="ident">backtrace::Backtrace::new_unresolved</span>();
+					<span class="ident">once_cell::sync::Lazy::new</span>(<span class="ident">Box::new</span>(<span class="kw">move</span> <span class="op">|</span><span class="op">|</span> {
+						<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">bt</span> <span class="op">=</span> <span class="ident">bt</span>;
+						<span class="ident">bt</span>.<span class="ident">resolve</span>();
+						<span class="ident">bt</span>
+					}))
+				}
+			}
+		}
+	};
+}
+
+<span class="macro">macro_rules!</span> <span class="ident">bail</span> {
+	($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>:<span class="ident">tt</span>)<span class="kw-2">*</span>) =&gt; {
+		<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="macro">error!</span>($(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">body</span>)<span class="kw-2">*</span>));
+	};
+}
 
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Deserializer</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> {
 	<span class="ident">input</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;de</span> <span class="ident">str</span>
@@ -1019,7 +1069,7 @@
 	<span class="kw">fn</span> <span class="ident">check_no_trailing_tokens</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
 		<span class="self">self</span>.<span class="ident">skip_whitespace</span>();
 		<span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">input</span>.<span class="ident">is_empty</span>() {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::TrailingTokens</span>);
+			<span class="macro">bail!</span>(<span class="ident">TrailingTokens</span>);
 		}
 		<span class="prelude-val">Ok</span>(())
 	}
@@ -1029,7 +1079,7 @@
 	}
 
 	<span class="kw">fn</span> <span class="ident">peek_char</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">char</span><span class="op">&gt;</span> {
-		<span class="self">self</span>.<span class="ident">input</span>.<span class="ident">chars</span>().<span class="ident">next</span>().<span class="ident">ok_or</span>(<span class="ident">Error::Eof</span>)
+		<span class="self">self</span>.<span class="ident">input</span>.<span class="ident">chars</span>().<span class="ident">next</span>().<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="macro">error!</span>(<span class="ident">Eof</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">next_char</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">char</span><span class="op">&gt;</span> {
@@ -1041,7 +1091,7 @@
 	<span class="kw">fn</span> <span class="ident">peek_token</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Token</span><span class="op">&gt;</span> {
 		<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">chars</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">input</span>.<span class="ident">chars</span>().<span class="ident">peekable</span>();
 		<span class="kw">if</span> <span class="ident">chars</span>.<span class="ident">peek</span>().<span class="ident">is_none</span>() {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::Eof</span>);
+			<span class="macro">bail!</span>(<span class="ident">Eof</span>);
 		}
 
 		<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">int</span> <span class="op">=</span> <span class="bool-val">true</span>;
@@ -1079,9 +1129,9 @@
 
 	<span class="kw">fn</span> <span class="ident">peek_sexpr_identifier</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;de</span> <span class="ident">str</span><span class="op">&gt;</span> {
 		<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">chars</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">input</span>.<span class="ident">chars</span>();
-		<span class="kw">let</span> <span class="ident">next</span> <span class="op">=</span> <span class="ident">chars</span>.<span class="ident">next</span>().<span class="ident">ok_or</span>(<span class="ident">Error::Eof</span>)<span class="question-mark">?</span>;
+		<span class="kw">let</span> <span class="ident">next</span> <span class="op">=</span> <span class="ident">chars</span>.<span class="ident">next</span>().<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="macro">error!</span>(<span class="ident">Eof</span>))<span class="question-mark">?</span>;
 		<span class="kw">if</span> <span class="ident">next</span> <span class="op">!</span><span class="op">=</span> <span class="string">&#39;(&#39;</span> {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedSExpr</span>(<span class="ident">next</span>));
+			<span class="macro">bail!</span>(<span class="ident">ExpectedSExpr</span>(<span class="ident">next</span>));
 		}
 		<span class="kw">let</span> <span class="ident">paren</span> <span class="op">=</span> <span class="string">&#39;(&#39;</span>.<span class="ident">len_utf8</span>();
 		<span class="kw">let</span> <span class="ident">len</span>: <span class="ident">usize</span> <span class="op">=</span> <span class="ident">chars</span>
@@ -1089,14 +1139,14 @@
 			.<span class="ident">map</span>(<span class="op">|</span><span class="ident">ch</span><span class="op">|</span> <span class="ident">ch</span>.<span class="ident">len_utf8</span>())
 			.<span class="ident">sum</span>();
 		<span class="kw">if</span> <span class="ident">len</span> <span class="op">==</span> <span class="number">0</span> {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedIdentifier</span>);
+			<span class="macro">bail!</span>(<span class="ident">ExpectedIdentifier</span>);
 		}
 		<span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">input</span>[<span class="ident">paren</span>..<span class="ident">paren</span> <span class="op">+</span> <span class="ident">len</span>])
 	}
 
 	<span class="kw">fn</span> <span class="ident">consume</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>, <span class="ident">len</span>: <span class="ident">usize</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
 		<span class="kw">if</span> <span class="self">self</span>.<span class="ident">input</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="ident">len</span> {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::Eof</span>);
+			<span class="macro">bail!</span>(<span class="ident">Eof</span>);
 		}
 		<span class="self">self</span>.<span class="ident">input</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">input</span>[<span class="ident">len</span>..];
 		<span class="prelude-val">Ok</span>(())
@@ -1114,19 +1164,19 @@
 			.<span class="ident">map</span>(<span class="op">|</span><span class="ident">ch</span><span class="op">|</span> <span class="ident">ch</span>.<span class="ident">len_utf8</span>())
 			.<span class="ident">sum</span>();
 		<span class="kw">if</span> <span class="ident">len</span> <span class="op">==</span> <span class="number">0</span> {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedNumber</span>);
+			<span class="macro">bail!</span>(<span class="ident">ExpectedNumber</span>);
 		}
 		<span class="kw">let</span> <span class="ident">number</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">input</span>[..<span class="ident">len</span>];
 		<span class="kw">let</span> <span class="ident">number</span> <span class="op">=</span> <span class="ident">number</span>
 			.<span class="ident">parse</span>()
-			.<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">err</span>: <span class="ident">T::Err</span><span class="op">|</span> <span class="ident">Error::Message</span>(<span class="ident">err</span>.<span class="ident">to_string</span>()))<span class="question-mark">?</span>;
+			.<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">err</span>: <span class="ident">T::Err</span><span class="op">|</span> <span class="macro">error!</span>(<span class="ident">Message</span>(<span class="ident">err</span>.<span class="ident">to_string</span>())))<span class="question-mark">?</span>;
 		<span class="self">self</span>.<span class="ident">input</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">input</span>[<span class="ident">len</span>..];
 		<span class="prelude-val">Ok</span>(<span class="ident">number</span>)
 	}
 
 	<span class="kw">fn</span> <span class="ident">parse_string</span>(<span class="kw-2">&amp;</span><span class="kw-2">mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Cow</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span>, <span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span> {
 		<span class="kw">match</span> <span class="self">self</span>.<span class="ident">peek_char</span>()<span class="question-mark">?</span> {
-			<span class="string">&#39;(&#39;</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedString</span>),
+			<span class="string">&#39;(&#39;</span> =&gt; <span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">ExpectedString</span>)),
 
 			<span class="string">&#39;&quot;&#39;</span> =&gt; {
 				<span class="self">self</span>.<span class="ident">consume</span>(<span class="string">&#39;&quot;&#39;</span>.<span class="ident">len_utf8</span>())<span class="question-mark">?</span>;
@@ -1139,7 +1189,7 @@
 						.<span class="ident">map</span>(<span class="op">|</span><span class="ident">ch</span><span class="op">|</span> <span class="ident">ch</span>.<span class="ident">len_utf8</span>())
 						.<span class="ident">sum</span>();
 					<span class="kw">if</span> <span class="ident">len</span> <span class="op">&gt;</span><span class="op">=</span> <span class="self">self</span>.<span class="ident">input</span>.<span class="ident">len</span>() {
-						<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::Eof</span>);
+						<span class="macro">bail!</span>(<span class="ident">Eof</span>);
 					}
 
 					<span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">start_idx</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">chars</span>().<span class="ident">count</span>();
@@ -1171,7 +1221,7 @@
 					.<span class="ident">map</span>(<span class="op">|</span><span class="ident">ch</span><span class="op">|</span> <span class="ident">ch</span>.<span class="ident">len_utf8</span>())
 					.<span class="ident">sum</span>();
 				<span class="kw">if</span> <span class="ident">len</span> <span class="op">==</span> <span class="number">0</span> {
-					<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::Eof</span>);
+					<span class="macro">bail!</span>(<span class="ident">Eof</span>);
 				}
 				<span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">input</span>[..<span class="ident">len</span>];
 				<span class="self">self</span>.<span class="ident">input</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">input</span>[<span class="ident">len</span>..];
@@ -1188,7 +1238,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedStruct</span>);
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">ExpectedStruct</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">deserialize_struct</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -1215,7 +1265,7 @@
 	{
 		<span class="ident">SExpr::consume_beginning</span>(<span class="self">self</span>, <span class="ident">name</span>)<span class="question-mark">?</span>;
 		<span class="kw">if</span> <span class="self">self</span>.<span class="ident">next_char</span>()<span class="question-mark">?</span> <span class="op">!</span><span class="op">=</span> <span class="string">&#39;)&#39;</span> {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedEoe</span>);
+			<span class="macro">bail!</span>(<span class="ident">ExpectedEoe</span>);
 		}
 		<span class="self">self</span>.<span class="ident">check_no_trailing_tokens</span>()<span class="question-mark">?</span>;
 		<span class="ident">visitor</span>.<span class="ident">visit_unit</span>()
@@ -1299,7 +1349,7 @@
 	<span class="kw">type</span> <span class="ident">Error</span> <span class="op">=</span> <span class="ident">Error</span>;
 
 	<span class="kw">fn</span> <span class="ident">unit_variant</span>(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident"><span class="self">Self</span>::Error</span><span class="op">&gt;</span> {
-		<span class="prelude-val">Err</span>(<span class="ident">Error::NonNewtypeEnumVariant</span>)
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">NonNewtypeEnumVariant</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">newtype_variant_seed</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">seed</span>: <span class="ident">T</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T::Value</span>, <span class="ident"><span class="self">Self</span>::Error</span><span class="op">&gt;</span>
@@ -1317,7 +1367,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="prelude-val">Err</span>(<span class="ident">Error::NonNewtypeEnumVariant</span>)
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">NonNewtypeEnumVariant</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">struct_variant</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -1328,7 +1378,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="prelude-val">Err</span>(<span class="ident">Error::NonNewtypeEnumVariant</span>)
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">NonNewtypeEnumVariant</span>))
 	}
 }
 
@@ -1348,7 +1398,7 @@
 		<span class="ident">de</span>.<span class="ident">skip_whitespace</span>();
 		<span class="kw">let</span> <span class="ident">peek</span> <span class="op">=</span> <span class="ident">de</span>.<span class="ident">peek_sexpr_identifier</span>()<span class="question-mark">?</span>;
 		<span class="kw">if</span> <span class="ident">peek</span> <span class="op">!</span><span class="op">=</span> <span class="ident">name</span> {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedSExprIdentifier</span>(<span class="ident">name</span>, <span class="ident">peek</span>.<span class="ident">to_owned</span>()));
+			<span class="macro">bail!</span>(<span class="ident">ExpectedSExprIdentifier</span>(<span class="ident">name</span>, <span class="ident">peek</span>.<span class="ident">to_owned</span>()));
 		}
 		<span class="ident">de</span>.<span class="ident">consume</span>(<span class="ident">name</span>.<span class="ident">len</span>() <span class="op">+</span> <span class="string">&#39;(&#39;</span>.<span class="ident">len_utf8</span>())<span class="question-mark">?</span>;
 		<span class="prelude-val">Ok</span>(())
@@ -1621,9 +1671,9 @@
 			<span class="ident">Token::SExpr</span> <span class="kw">if</span> <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">de</span>.<span class="ident">peek_sexpr_identifier</span>()<span class="question-mark">?</span>) <span class="op">==</span> <span class="self">self</span>.<span class="ident">ident</span> =&gt; {
 				<span class="self">self</span>.<span class="ident">deserialize_seq</span>(<span class="ident">visitor</span>)
 			},
-			<span class="ident">Token::SExpr</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">Error::MissingSExprInfo</span>(
+			<span class="ident">Token::SExpr</span> =&gt; <span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">MissingSExprInfo</span>(
 				<span class="self">self</span>.<span class="ident">de</span>.<span class="ident">peek_sexpr_identifier</span>()<span class="question-mark">?</span>.<span class="ident">to_owned</span>()
-			))
+			)))
 		}
 	}
 
@@ -1659,7 +1709,7 @@
 		<span class="comment">// we&#39;ll need to know the type of Some (i.e. the s-expr tag) to see if it is present in</span>
 		<span class="comment">// the input or not</span>
 		<span class="comment">// however, serde doesn&#39;t give us this type of information, so we&#39;ll just error</span>
-		<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::DeserializeOption</span>);
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">DeserializeOption</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">deserialize_struct</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -1681,7 +1731,7 @@
 		<span class="kw">let</span> <span class="ident">ident</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">ident</span> {
 			<span class="prelude-val">Some</span>(<span class="ident">ident</span>) =&gt; <span class="ident">ident</span>,
 			<span class="prelude-val">None</span> =&gt; {
-				<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::MissingSExprInfo</span>(
+				<span class="macro">bail!</span>(<span class="ident">MissingSExprInfo</span>(
 					<span class="self">self</span>.<span class="ident">de</span>.<span class="ident">peek_sexpr_identifier</span>()<span class="question-mark">?</span>.<span class="ident">to_owned</span>()
 				));
 			}
@@ -1699,7 +1749,7 @@
 	{
 		<span class="ident">SExpr::consume_beginning</span>(<span class="self">self</span>.<span class="ident">de</span>, <span class="ident">name</span>)<span class="question-mark">?</span>;
 		<span class="kw">if</span> <span class="self">self</span>.<span class="ident">de</span>.<span class="ident">next_char</span>()<span class="question-mark">?</span> <span class="op">!</span><span class="op">=</span> <span class="string">&#39;)&#39;</span> {
-			<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::ExpectedEoe</span>);
+			<span class="macro">bail!</span>(<span class="ident">ExpectedEoe</span>);
 		}
 		<span class="ident">visitor</span>.<span class="ident">visit_unit</span>()
 	}
@@ -1746,7 +1796,7 @@
 		<span class="kw">let</span> <span class="ident">ident</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">ident</span> {
 			<span class="prelude-val">Some</span>(<span class="ident">ident</span>) =&gt; <span class="ident">ident</span>,
 			<span class="prelude-val">None</span> =&gt; {
-				<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::MissingSExprInfo</span>(
+				<span class="macro">bail!</span>(<span class="ident">MissingSExprInfo</span>(
 					<span class="self">self</span>.<span class="ident">de</span>.<span class="ident">peek_sexpr_identifier</span>()<span class="question-mark">?</span>.<span class="ident">to_owned</span>()
 				));
 			}
@@ -1826,14 +1876,14 @@
 	<span class="kw">where</span>
 		<span class="ident">T</span>: <span class="ident">DeserializeSeed</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="prelude-val">Err</span>(<span class="ident">Error::NonUnitEnumVariant</span>)
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">NonUnitEnumVariant</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">tuple_variant</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">_len</span>: <span class="ident">usize</span>, <span class="ident">_visitor</span>: <span class="ident">V</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">V::Value</span><span class="op">&gt;</span>
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="prelude-val">Err</span>(<span class="ident">Error::NonUnitEnumVariant</span>)
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">NonUnitEnumVariant</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">struct_variant</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -1844,7 +1894,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="prelude-val">Err</span>(<span class="ident">Error::NonUnitEnumVariant</span>)
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">NonUnitEnumVariant</span>))
 	}
 }
 
@@ -1857,7 +1907,7 @@
 	<span class="kw">type</span> <span class="ident">Error</span> <span class="op">=</span> <span class="ident">Error</span>;
 
 	<span class="kw">fn</span> <span class="ident">unit_variant</span>(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident"><span class="self">Self</span>::Error</span><span class="op">&gt;</span> {
-		<span class="prelude-val">Err</span>(<span class="ident">Error::NonNewtypeEnumVariant</span>)
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">NonNewtypeEnumVariant</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">newtype_variant_seed</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="self">self</span>, <span class="ident">seed</span>: <span class="ident">T</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T::Value</span>, <span class="ident"><span class="self">Self</span>::Error</span><span class="op">&gt;</span>
@@ -1875,7 +1925,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="prelude-val">Err</span>(<span class="ident">Error::NonNewtypeEnumVariant</span>)
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">NonNewtypeEnumVariant</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">struct_variant</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -1886,7 +1936,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="prelude-val">Err</span>(<span class="ident">Error::NonNewtypeEnumVariant</span>)
+		<span class="prelude-val">Err</span>(<span class="macro">error!</span>(<span class="ident">NonNewtypeEnumVariant</span>))
 	}
 }
 
