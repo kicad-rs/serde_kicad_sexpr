@@ -2,8 +2,8 @@ use serde::de;
 use std::fmt::{self, Debug, Display, Formatter};
 use thiserror::Error;
 
-#[derive(Clone, Error, PartialEq)]
-pub enum Error {
+#[derive(Debug, Clone, Error, PartialEq)]
+pub enum ErrorKind {
 	#[error("{0}")]
 	Message(String),
 
@@ -72,14 +72,56 @@ pub enum Error {
 	TrailingTokens
 }
 
-impl Debug for Error {
-	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-		Display::fmt(self, f)
+#[non_exhaustive]
+pub struct Error {
+	pub kind: ErrorKind,
+
+	#[cfg(feature = "backtrace")]
+	pub(super) backtrace: once_cell::sync::Lazy<
+		backtrace::Backtrace,
+		Box<dyn FnOnce() -> backtrace::Backtrace>
+	>
+}
+
+impl Error {
+	#[cfg(feature = "backtrace")]
+	pub fn backtrace(&self) -> &backtrace::Backtrace {
+		&*self.backtrace
 	}
 }
 
+impl Debug for Error {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		let mut dbg = f.debug_struct("Error");
+		dbg.field("message", &self.kind.to_string());
+		dbg.field("kind", &self.kind);
+		#[cfg(feature = "backtrace")]
+		dbg.field("backtrace", self.backtrace());
+		dbg.finish()
+	}
+}
+
+impl Display for Error {
+	fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+		Display::fmt(&self.kind, f)
+	}
+}
+
+impl std::error::Error for Error {}
+
 impl de::Error for Error {
 	fn custom<T: Display>(msg: T) -> Self {
-		Self::Message(msg.to_string())
+		Error {
+			kind: ErrorKind::Message(msg.to_string()),
+			#[cfg(feature = "backtrace")]
+			backtrace: {
+				let bt = backtrace::Backtrace::new_unresolved();
+				once_cell::sync::Lazy::new(Box::new(move || {
+					let mut bt = bt;
+					bt.resolve();
+					bt
+				}))
+			}
+		}
 	}
 }

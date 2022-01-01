@@ -9,7 +9,32 @@ use serde::{
 use std::{borrow::Cow, fmt::Display, str::FromStr};
 
 mod error;
-pub use error::Error;
+pub use error::{Error, ErrorKind};
+
+macro_rules! error {
+	($kind:ident $(($($arg:expr),+))?) => {
+		{
+			Error {
+				kind: ErrorKind::$kind $(($($arg),+))?,
+				#[cfg(feature = "backtrace")]
+				backtrace: {
+					let bt = backtrace::Backtrace::new_unresolved();
+					once_cell::sync::Lazy::new(Box::new(move || {
+						let mut bt = bt;
+						bt.resolve();
+						bt
+					}))
+				}
+			}
+		}
+	};
+}
+
+macro_rules! bail {
+	($($body:tt)*) => {
+		return Err(error!($($body)*));
+	};
+}
 
 pub struct Deserializer<'de> {
 	input: &'de str
@@ -43,7 +68,7 @@ impl<'de> Deserializer<'de> {
 	fn check_no_trailing_tokens(&mut self) -> Result<()> {
 		self.skip_whitespace();
 		if !self.input.is_empty() {
-			return Err(Error::TrailingTokens);
+			bail!(TrailingTokens);
 		}
 		Ok(())
 	}
@@ -53,7 +78,7 @@ impl<'de> Deserializer<'de> {
 	}
 
 	fn peek_char(&self) -> Result<char> {
-		self.input.chars().next().ok_or(Error::Eof)
+		self.input.chars().next().ok_or_else(|| error!(Eof))
 	}
 
 	fn next_char(&mut self) -> Result<char> {
@@ -65,7 +90,7 @@ impl<'de> Deserializer<'de> {
 	fn peek_token(&self) -> Result<Token> {
 		let mut chars = self.input.chars().peekable();
 		if chars.peek().is_none() {
-			return Err(Error::Eof);
+			bail!(Eof);
 		}
 
 		let mut int = true;
@@ -103,9 +128,9 @@ impl<'de> Deserializer<'de> {
 
 	fn peek_sexpr_identifier(&self) -> Result<&'de str> {
 		let mut chars = self.input.chars();
-		let next = chars.next().ok_or(Error::Eof)?;
+		let next = chars.next().ok_or_else(|| error!(Eof))?;
 		if next != '(' {
-			return Err(Error::ExpectedSExpr(next));
+			bail!(ExpectedSExpr(next));
 		}
 		let paren = '('.len_utf8();
 		let len: usize = chars
@@ -113,14 +138,14 @@ impl<'de> Deserializer<'de> {
 			.map(|ch| ch.len_utf8())
 			.sum();
 		if len == 0 {
-			return Err(Error::ExpectedIdentifier);
+			bail!(ExpectedIdentifier);
 		}
 		Ok(&self.input[paren..paren + len])
 	}
 
 	fn consume(&mut self, len: usize) -> Result<()> {
 		if self.input.len() < len {
-			return Err(Error::Eof);
+			bail!(Eof);
 		}
 		self.input = &self.input[len..];
 		Ok(())
@@ -138,19 +163,19 @@ impl<'de> Deserializer<'de> {
 			.map(|ch| ch.len_utf8())
 			.sum();
 		if len == 0 {
-			return Err(Error::ExpectedNumber);
+			bail!(ExpectedNumber);
 		}
 		let number = &self.input[..len];
 		let number = number
 			.parse()
-			.map_err(|err: T::Err| Error::Message(err.to_string()))?;
+			.map_err(|err: T::Err| error!(Message(err.to_string())))?;
 		self.input = &self.input[len..];
 		Ok(number)
 	}
 
 	fn parse_string(&mut self) -> Result<Cow<'de, str>> {
 		match self.peek_char()? {
-			'(' => Err(Error::ExpectedString),
+			'(' => Err(error!(ExpectedString)),
 
 			'"' => {
 				self.consume('"'.len_utf8())?;
@@ -163,7 +188,7 @@ impl<'de> Deserializer<'de> {
 						.map(|ch| ch.len_utf8())
 						.sum();
 					if len >= self.input.len() {
-						return Err(Error::Eof);
+						bail!(Eof);
 					}
 
 					let mut start_idx = value.chars().count();
@@ -195,7 +220,7 @@ impl<'de> Deserializer<'de> {
 					.map(|ch| ch.len_utf8())
 					.sum();
 				if len == 0 {
-					return Err(Error::Eof);
+					bail!(Eof);
 				}
 				let value = &self.input[..len];
 				self.input = &self.input[len..];
@@ -212,7 +237,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 	where
 		V: Visitor<'de>
 	{
-		return Err(Error::ExpectedStruct);
+		Err(error!(ExpectedStruct))
 	}
 
 	fn deserialize_struct<V>(
@@ -239,7 +264,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
 	{
 		SExpr::consume_beginning(self, name)?;
 		if self.next_char()? != ')' {
-			return Err(Error::ExpectedEoe);
+			bail!(ExpectedEoe);
 		}
 		self.check_no_trailing_tokens()?;
 		visitor.visit_unit()
@@ -323,7 +348,7 @@ impl<'a, 'de> VariantAccess<'de> for Enum<'a, 'de> {
 	type Error = Error;
 
 	fn unit_variant(self) -> Result<(), Self::Error> {
-		Err(Error::NonNewtypeEnumVariant)
+		Err(error!(NonNewtypeEnumVariant))
 	}
 
 	fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
@@ -341,7 +366,7 @@ impl<'a, 'de> VariantAccess<'de> for Enum<'a, 'de> {
 	where
 		V: Visitor<'de>
 	{
-		Err(Error::NonNewtypeEnumVariant)
+		Err(error!(NonNewtypeEnumVariant))
 	}
 
 	fn struct_variant<V>(
@@ -352,7 +377,7 @@ impl<'a, 'de> VariantAccess<'de> for Enum<'a, 'de> {
 	where
 		V: Visitor<'de>
 	{
-		Err(Error::NonNewtypeEnumVariant)
+		Err(error!(NonNewtypeEnumVariant))
 	}
 }
 
@@ -372,7 +397,7 @@ impl<'a, 'de> SExpr<'a, 'de> {
 		de.skip_whitespace();
 		let peek = de.peek_sexpr_identifier()?;
 		if peek != name {
-			return Err(Error::ExpectedSExprIdentifier(name, peek.to_owned()));
+			bail!(ExpectedSExprIdentifier(name, peek.to_owned()));
 		}
 		de.consume(name.len() + '('.len_utf8())?;
 		Ok(())
@@ -645,9 +670,9 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 			Token::SExpr if Some(self.de.peek_sexpr_identifier()?) == self.ident => {
 				self.deserialize_seq(visitor)
 			},
-			Token::SExpr => Err(Error::MissingSExprInfo(
+			Token::SExpr => Err(error!(MissingSExprInfo(
 				self.de.peek_sexpr_identifier()?.to_owned()
-			))
+			)))
 		}
 	}
 
@@ -683,7 +708,7 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		// we'll need to know the type of Some (i.e. the s-expr tag) to see if it is present in
 		// the input or not
 		// however, serde doesn't give us this type of information, so we'll just error
-		return Err(Error::DeserializeOption);
+		Err(error!(DeserializeOption))
 	}
 
 	fn deserialize_struct<V>(
@@ -705,7 +730,7 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		let ident = match self.ident {
 			Some(ident) => ident,
 			None => {
-				return Err(Error::MissingSExprInfo(
+				bail!(MissingSExprInfo(
 					self.de.peek_sexpr_identifier()?.to_owned()
 				));
 			}
@@ -723,7 +748,7 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 	{
 		SExpr::consume_beginning(self.de, name)?;
 		if self.de.next_char()? != ')' {
-			return Err(Error::ExpectedEoe);
+			bail!(ExpectedEoe);
 		}
 		visitor.visit_unit()
 	}
@@ -770,7 +795,7 @@ impl<'a, 'de> de::Deserializer<'de> for Field<'a, 'de> {
 		let ident = match self.ident {
 			Some(ident) => ident,
 			None => {
-				return Err(Error::MissingSExprInfo(
+				bail!(MissingSExprInfo(
 					self.de.peek_sexpr_identifier()?.to_owned()
 				));
 			}
@@ -850,14 +875,14 @@ impl<'de> VariantAccess<'de> for UnitVariant {
 	where
 		T: DeserializeSeed<'de>
 	{
-		Err(Error::NonUnitEnumVariant)
+		Err(error!(NonUnitEnumVariant))
 	}
 
 	fn tuple_variant<V>(self, _len: usize, _visitor: V) -> Result<V::Value>
 	where
 		V: Visitor<'de>
 	{
-		Err(Error::NonUnitEnumVariant)
+		Err(error!(NonUnitEnumVariant))
 	}
 
 	fn struct_variant<V>(
@@ -868,7 +893,7 @@ impl<'de> VariantAccess<'de> for UnitVariant {
 	where
 		V: Visitor<'de>
 	{
-		Err(Error::NonUnitEnumVariant)
+		Err(error!(NonUnitEnumVariant))
 	}
 }
 
@@ -881,7 +906,7 @@ impl<'a, 'de> VariantAccess<'de> for NewtypeVariant<'a, 'de> {
 	type Error = Error;
 
 	fn unit_variant(self) -> Result<(), Self::Error> {
-		Err(Error::NonNewtypeEnumVariant)
+		Err(error!(NonNewtypeEnumVariant))
 	}
 
 	fn newtype_variant_seed<T>(self, seed: T) -> Result<T::Value, Self::Error>
@@ -899,7 +924,7 @@ impl<'a, 'de> VariantAccess<'de> for NewtypeVariant<'a, 'de> {
 	where
 		V: Visitor<'de>
 	{
-		Err(Error::NonNewtypeEnumVariant)
+		Err(error!(NonNewtypeEnumVariant))
 	}
 
 	fn struct_variant<V>(
@@ -910,7 +935,7 @@ impl<'a, 'de> VariantAccess<'de> for NewtypeVariant<'a, 'de> {
 	where
 		V: Visitor<'de>
 	{
-		Err(Error::NonNewtypeEnumVariant)
+		Err(error!(NonNewtypeEnumVariant))
 	}
 }
 

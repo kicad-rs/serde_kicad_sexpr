@@ -15,6 +15,15 @@ jobs:
         env:
           RUST_BACKTRACE: 1
   
+  test-all-features:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --all-features
+        env:
+          RUST_BACKTRACE: 1
+  
   rustfmt:
     runs-on: ubuntu-latest
     steps:
