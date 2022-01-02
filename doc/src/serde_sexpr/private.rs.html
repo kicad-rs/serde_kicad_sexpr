@@ -142,9 +142,9 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Extraction::Err</span>(
+		<span class="prelude-val">Err</span>(<span class="ident">Extraction::Err</span>(
 			<span class="string">&quot;Expected to deserialize a struct&quot;</span>.<span class="ident">to_owned</span>()
-		));
+		))
 	}
 
 	<span class="kw">fn</span> <span class="ident">deserialize_unit_struct</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -155,7 +155,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="kw">return</span> <span class="ident">Result::Err</span>(<span class="ident">Extraction::Ok</span>(<span class="ident">name</span>));
+		<span class="prelude-val">Err</span>(<span class="ident">Extraction::Ok</span>(<span class="ident">name</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">deserialize_newtype_struct</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -166,7 +166,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="kw">return</span> <span class="ident">Result::Err</span>(<span class="ident">Extraction::Ok</span>(<span class="ident">name</span>));
+		<span class="prelude-val">Err</span>(<span class="ident">Extraction::Ok</span>(<span class="ident">name</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">deserialize_tuple_struct</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -178,7 +178,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="kw">return</span> <span class="ident">Result::Err</span>(<span class="ident">Extraction::Ok</span>(<span class="ident">name</span>));
+		<span class="prelude-val">Err</span>(<span class="ident">Extraction::Ok</span>(<span class="ident">name</span>))
 	}
 
 	<span class="kw">fn</span> <span class="ident">deserialize_struct</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>(
@@ -190,7 +190,7 @@
 	<span class="kw">where</span>
 		<span class="ident">V</span>: <span class="ident">Visitor</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>
 	{
-		<span class="kw">return</span> <span class="ident">Result::Err</span>(<span class="ident">Extraction::Ok</span>(<span class="ident">name</span>));
+		<span class="prelude-val">Err</span>(<span class="ident">Extraction::Ok</span>(<span class="ident">name</span>))
 	}
 
 	<span class="macro">forward_to_deserialize_any!</span> {
