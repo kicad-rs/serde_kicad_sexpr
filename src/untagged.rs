@@ -35,7 +35,11 @@ macro_rules! untagged {
 				> = $crate::private::SyncLazy::new(|| ::std::result::Result::Ok([$({
 					let extraction = <$inner as ::serde::Deserialize>::deserialize(
 						$crate::private::NameExtractor
-					).unwrap_err();
+					);
+					let extraction = match extraction {
+						::std::result::Result::Ok(_) => ::std::unreachable!(),
+						::std::result::Result::Err(e) => e
+					};
 					match extraction {
 						$crate::private::Extraction::Ok(name) => name,
 						$crate::private::Extraction::Err(err) => return Err(err)
@@ -87,7 +91,7 @@ macro_rules! untagged {
 				}
 
 				deserializer.deserialize_enum(
-					std::stringify!($name),
+					::std::stringify!($name),
 					variants,
 					Visitor(variants)
 				)

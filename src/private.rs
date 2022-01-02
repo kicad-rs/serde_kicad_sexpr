@@ -41,9 +41,9 @@ impl<'de> Deserializer<'de> for NameExtractor {
 	where
 		V: Visitor<'de>
 	{
-		return Err(Extraction::Err(
+		Err(Extraction::Err(
 			"Expected to deserialize a struct".to_owned()
-		));
+		))
 	}
 
 	fn deserialize_unit_struct<V>(
@@ -54,7 +54,7 @@ impl<'de> Deserializer<'de> for NameExtractor {
 	where
 		V: Visitor<'de>
 	{
-		return Result::Err(Extraction::Ok(name));
+		Err(Extraction::Ok(name))
 	}
 
 	fn deserialize_newtype_struct<V>(
@@ -65,7 +65,7 @@ impl<'de> Deserializer<'de> for NameExtractor {
 	where
 		V: Visitor<'de>
 	{
-		return Result::Err(Extraction::Ok(name));
+		Err(Extraction::Ok(name))
 	}
 
 	fn deserialize_tuple_struct<V>(
@@ -77,7 +77,7 @@ impl<'de> Deserializer<'de> for NameExtractor {
 	where
 		V: Visitor<'de>
 	{
-		return Result::Err(Extraction::Ok(name));
+		Err(Extraction::Ok(name))
 	}
 
 	fn deserialize_struct<V>(
@@ -89,7 +89,7 @@ impl<'de> Deserializer<'de> for NameExtractor {
 	where
 		V: Visitor<'de>
 	{
-		return Result::Err(Extraction::Ok(name));
+		Err(Extraction::Ok(name))
 	}
 
 	forward_to_deserialize_any! {
