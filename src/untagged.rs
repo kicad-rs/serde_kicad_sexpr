@@ -10,7 +10,7 @@ macro_rules! untagged {
 		}
 	) => {
 		$(#[$attr])*
-		#[derive(Serialize)]
+		#[derive(::serde::Serialize)]
 		#[serde(untagged)]
 		$vis enum $name {
 			$(
@@ -110,15 +110,19 @@ macro_rules! count {
 
 #[cfg(test)]
 mod tests {
-	use serde::{Deserialize, Serialize};
+	mod foo_bar {
+		use serde::{Deserialize, Serialize};
 
-	#[derive(Debug, Deserialize, PartialEq, Serialize)]
-	#[serde(deny_unknown_fields, rename = "foo")]
-	struct Foo;
+		#[derive(Debug, Deserialize, PartialEq, Serialize)]
+		#[serde(deny_unknown_fields, rename = "foo")]
+		pub(super) struct Foo;
 
-	#[derive(Debug, Deserialize, PartialEq, Serialize)]
-	#[serde(deny_unknown_fields, rename = "bar")]
-	struct Bar;
+		#[derive(Debug, Deserialize, PartialEq, Serialize)]
+		#[serde(deny_unknown_fields, rename = "bar")]
+		pub(super) struct Bar;
+	}
+
+	use foo_bar::{Bar, Foo};
 
 	untagged! {
 		#[derive(Debug, PartialEq)]
