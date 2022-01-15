@@ -8,7 +8,8 @@ fn assert_eq_parsed<T>(input: &str, expected: &T)
 where
 	T: Debug + DeserializeOwned + PartialEq
 {
-	let parsed: T = serde_kicad_sexpr::from_str(input).expect("Failed to parse input");
+	let parsed: T =
+		serde_kicad_sexpr::from_str(input).expect("Failed to parse input");
 	assert_eq!(&parsed, expected);
 }
 
@@ -16,7 +17,8 @@ fn assert_eq_ugly<T>(input: &T, expected: &str)
 where
 	T: ?Sized + Serialize
 {
-	let written = serde_kicad_sexpr::to_string(input).expect("Failed to write input");
+	let written =
+		serde_kicad_sexpr::to_string(input).expect("Failed to write input");
 	assert_eq!(written.as_str(), expected);
 }
 
