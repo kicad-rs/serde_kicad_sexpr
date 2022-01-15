@@ -33,6 +33,15 @@ jobs:
           components: rustfmt
       - run: cargo fmt --all -- --check
   
+  readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker://ghcr.io/msrd0/cargo-doc2readme
+        with:
+          entrypoint: ./readme.sh
+          args: --check
+  
   coverage:
     runs-on: ubuntu-latest
     steps:
