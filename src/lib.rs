@@ -71,6 +71,7 @@
 //!
 //!  [`Serializer`]: serde::ser::Serializer
 //!  [`Deserializer`]: serde::de::Deserializer
+//!  [`untagged!`]: serde_sexpr::untagged
 
 mod option;
 #[macro_use]

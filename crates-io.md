@@ -74,4 +74,4 @@ as defined in the Apache-2.0 license, shall be dual licensed as above, without a
 
  [__link0]: https://docs.rs/serde/1.0.133/serde/?search=serde::ser::Serializer
  [__link1]: https://docs.rs/serde/1.0.133/serde/?search=serde::de::Deserializer
- [__link2]: `untagged!`
+ [__link2]: https://docs.rs/serde_sexpr/0.0.0/serde_sexpr/?search=serde_sexpr::untagged
