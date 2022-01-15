@@ -1,3 +1,0 @@
-(function() {var implementors = {};
-implementors["serde_sexpr"] = [{"text":"impl <a class=\"trait\" href=\"https://docs.rs/serde/1.0.133/serde/ser/trait.Serialize.html\" title=\"trait serde::ser::Serialize\">Serialize</a> for <a class=\"struct\" href=\"serde_sexpr/struct.Literal.html\" title=\"struct serde_sexpr::Literal\">Literal</a>","synthetic":false,"types":["serde_sexpr::literal::Literal"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
