@@ -1,9 +1,8 @@
 # -*- eval: (cargo-minor-mode 1) -*-
 
 [package]
-name = "serde_sexpr"
-version = "0.0.0"
-publish = false
+name = "serde_kicad_sexpr"
+version = "0.1.0"
 edition = "2021"
 
 license = "Apache-2.0 OR LGPL-3.0"
@@ -11,7 +10,9 @@ description = "KiCAD v6 S-Expression Format"
 categories = ["encoding"]
 keywords = ["s-expression", "s-expr", "kicad", "serde", "serialization"]
 
-repository = "https://github.com/kicad-rs/serde_sexpr"
+repository = "https://github.com/kicad-rs/serde_kicad_sexpr"
+readme = "crates-io.md"
+include = ["src/**/*", "crates-io.md", "LICENSE-*"]
 
 [dependencies]
 backtrace = { version = "0.3.63", optional = true }

@@ -32,7 +32,7 @@
 //!    struct Position {
 //!        x: i32,
 //!        y: i32,
-//!        #[serde(with = "serde_sexpr::Option")]
+//!        #[serde(with = "serde_kicad_sexpr::Option")]
 //!        rotation: Option<i32>
 //!    }
 //!    ```
@@ -60,7 +60,7 @@
 //!    types, use the [`untagged!`] macro:
 //!
 //!    ```rust
-//!    serde_sexpr::untagged! {
+//!    serde_kicad_sexpr::untagged! {
 //!        enum TextOrNumber {
 //!            Text(String),
 //!            Int(i32),
@@ -71,7 +71,7 @@
 //!
 //!  [`Serializer`]: serde::ser::Serializer
 //!  [`Deserializer`]: serde::de::Deserializer
-//!  [`untagged!`]: serde_sexpr::untagged
+//!  [`untagged!`]: serde_kicad_sexpr::untagged
 
 mod option;
 #[macro_use]

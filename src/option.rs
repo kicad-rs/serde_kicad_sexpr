@@ -32,13 +32,13 @@ use std::{
 /// 	size: Size,
 ///
 /// 	// This attribute enables our custom deserialize logic.
-/// 	#[serde(with = "serde_sexpr::Option")]
+/// 	#[serde(with = "serde_kicad_sexpr::Option")]
 /// 	thickness: Option<Thickness>,
 ///
 /// 	bold: bool
 /// }
 /// # assert_eq!(
-/// # 	serde_sexpr::from_str::<Font>("(font (size 1 1) bold)").unwrap(),
+/// # 	serde_kicad_sexpr::from_str::<Font>("(font (size 1 1) bold)").unwrap(),
 /// # 	Font { size: Size(1.0, 1.0), thickness: None, bold: true }
 /// # );
 /// ```
@@ -95,13 +95,13 @@ where
 /// 	size: Size,
 ///
 /// 	// This attribute enables our custom deserialize logic.
-/// 	#[serde(deserialize_with = "serde_sexpr::deserialize_option")]
+/// 	#[serde(deserialize_with = "serde_kicad_sexpr::deserialize_option")]
 /// 	thickness: Option<Thickness>,
 ///
 /// 	bold: bool
 /// }
 /// # assert_eq!(
-/// # 	serde_sexpr::from_str::<Font>("(font (size 1 1) bold)").unwrap(),
+/// # 	serde_kicad_sexpr::from_str::<Font>("(font (size 1 1) bold)").unwrap(),
 /// # 	Font { size: Size(1.0, 1.0), thickness: None, bold: true }
 /// # );
 /// ```

@@ -1,4 +1,4 @@
-# serde_sexpr [![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0) [![License LGPL-3.0](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0.html) [![GitHub](https://img.shields.io/badge/Code-On%20Github-blue?logo=GitHub)](https://github.com/kicad-rs/serde_sexpr)
+# serde_kicad_sexpr [![License Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0) [![License LGPL-3.0](https://img.shields.io/badge/license-LGPL--3.0-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0.html) [![GitHub](https://img.shields.io/badge/Code-On%20Github-blue?logo=GitHub)](https://github.com/kicad-rs/serde_kicad_sexpr)
 
 This crate provides a serde [`Serializer`][__link0] and [`Deserializer`][__link1] implementation for the S-Expression data format used by KiCAD. Since this format differs in some central aspects from other formats like JSON, there are some limitations and special cases you should be aware of:
 
@@ -24,7 +24,7 @@ This crate provides a serde [`Serializer`][__link0] and [`Deserializer`][__link1
 	struct Position {
 	    x: i32,
 	    y: i32,
-	    #[serde(with = "serde_sexpr::Option")]
+	    #[serde(with = "serde_kicad_sexpr::Option")]
 	    rotation: Option<i32>
 	}
 	```
@@ -51,7 +51,7 @@ This crate provides a serde [`Serializer`][__link0] and [`Deserializer`][__link1
 	
 	
 	```rust
-	serde_sexpr::untagged! {
+	serde_kicad_sexpr::untagged! {
 	    enum TextOrNumber {
 	        Text(String),
 	        Int(i32),
@@ -74,4 +74,4 @@ as defined in the Apache-2.0 license, shall be dual licensed as above, without a
 
  [__link0]: https://docs.rs/serde/1.0.133/serde/?search=serde::ser::Serializer
  [__link1]: https://docs.rs/serde/1.0.133/serde/?search=serde::de::Deserializer
- [__link2]: https://docs.rs/serde_sexpr/0.0.0/serde_sexpr/?search=serde_sexpr::untagged
+ [__link2]: https://docs.rs/serde_kicad_sexpr/0.1.0/serde_kicad_sexpr/?search=serde_kicad_sexpr::untagged

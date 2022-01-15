@@ -8,7 +8,7 @@ fn assert_eq_parsed<T>(input: &str, expected: &T)
 where
 	T: Debug + DeserializeOwned + PartialEq
 {
-	let parsed: T = serde_sexpr::from_str(input).expect("Failed to parse input");
+	let parsed: T = serde_kicad_sexpr::from_str(input).expect("Failed to parse input");
 	assert_eq!(&parsed, expected);
 }
 
@@ -16,7 +16,7 @@ fn assert_eq_ugly<T>(input: &T, expected: &str)
 where
 	T: ?Sized + Serialize
 {
-	let written = serde_sexpr::to_string(input).expect("Failed to write input");
+	let written = serde_kicad_sexpr::to_string(input).expect("Failed to write input");
 	assert_eq!(written.as_str(), expected);
 }
 
@@ -25,7 +25,7 @@ where
 	T: ?Sized + Serialize
 {
 	let written =
-		serde_sexpr::to_string_pretty(input).expect("Failed to write input");
+		serde_kicad_sexpr::to_string_pretty(input).expect("Failed to write input");
 	assert_eq!(written.as_str(), expected.trim_end_matches('\n'));
 }
 
@@ -103,8 +103,8 @@ test_case! {
 #[test]
 fn test_deserialize_locked_trailing_tokens() {
 	let input = "(locked))";
-	let err = serde_sexpr::from_str::<Locked>(input).unwrap_err();
-	assert_eq!(err.kind, serde_sexpr::de::ErrorKind::TrailingTokens);
+	let err = serde_kicad_sexpr::from_str::<Locked>(input).unwrap_err();
+	assert_eq!(err.kind, serde_kicad_sexpr::de::ErrorKind::TrailingTokens);
 }
 
 // ##################################################################################
@@ -140,7 +140,7 @@ test_case! {
 struct Position {
 	x: f32,
 	y: f32,
-	#[serde(with = "serde_sexpr::Option")]
+	#[serde(with = "serde_kicad_sexpr::Option")]
 	rot: Option<i16>
 }
 
@@ -187,7 +187,7 @@ struct Thickness(f32);
 struct Font {
 	size: Size,
 
-	#[serde(with = "serde_sexpr::Option")]
+	#[serde(with = "serde_kicad_sexpr::Option")]
 	thickness: Option<Thickness>,
 
 	bold: bool
@@ -215,7 +215,7 @@ struct Line {
 	start: (f32, f32),
 	end: (f32, f32),
 
-	#[serde(with = "serde_sexpr::Option")]
+	#[serde(with = "serde_kicad_sexpr::Option")]
 	locked: Option<()>
 }
 
@@ -273,7 +273,7 @@ enum PadShape {
 struct Drill {
 	oval: bool,
 	drill1: f32,
-	#[serde(with = "serde_sexpr::Option")]
+	#[serde(with = "serde_kicad_sexpr::Option")]
 	drill2: Option<f32>
 }
 
@@ -285,7 +285,7 @@ struct Pad {
 	shape: PadShape,
 	at: Position,
 	size: Size,
-	#[serde(with = "serde_sexpr::Option")]
+	#[serde(with = "serde_kicad_sexpr::Option")]
 	drill: Option<Drill>,
 	layers: Vec<String>
 }
