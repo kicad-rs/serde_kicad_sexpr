@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["serde_sexpr"];
+window.ALL_CRATES = ["serde_kicad_sexpr"];
