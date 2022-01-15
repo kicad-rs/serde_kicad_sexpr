@@ -2,7 +2,6 @@ use indoc::indoc;
 use paste::paste;
 use pretty_assertions::assert_eq;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use serde_sexpr::Literal;
 use std::fmt::Debug;
 
 fn assert_eq_parsed<T>(input: &str, expected: &T)
@@ -281,7 +280,7 @@ struct Drill {
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields, rename = "pad")]
 struct Pad {
-	index: Literal,
+	index: String,
 	ty: PadType,
 	shape: PadShape,
 	at: Position,
@@ -293,15 +292,15 @@ struct Pad {
 
 test_case! {
 	name: pad_without_drill,
-	input: r#"(pad 1 smd rect (at 0 0) (size 1.27 1.27) (layers "F.Cu"))"#,
+	input: r#"(pad "1" smd rect (at 0 0) (size 1.27 1.27) (layers "F.Cu"))"#,
 	pretty: indoc!(r#"
-		(pad 1 smd rect
+		(pad "1" smd rect
 		  (at 0 0)
 		  (size 1.27 1.27)
 		  (layers "F.Cu"))
 	"#),
 	value: Pad {
-		index: 1.into(),
+		index: "1".into(),
 		ty: PadType::Smd,
 		shape: PadShape::Rect,
 		at: Position {
@@ -317,16 +316,16 @@ test_case! {
 
 test_case! {
 	name: pad_with_drill,
-	input: r#"(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27) (drill 0.635) (layers "F.Cu"))"#,
+	input: r#"(pad "1" thru-hole rect (at 0 0) (size 1.27 1.27) (drill 0.635) (layers "F.Cu"))"#,
 	pretty: indoc!(r#"
-		(pad 1 thru-hole rect
+		(pad "1" thru-hole rect
 		  (at 0 0)
 		  (size 1.27 1.27)
 		  (drill 0.635)
 		  (layers "F.Cu"))
 	"#),
 	value: Pad {
-		index: 1.into(),
+		index: "1".into(),
 		ty: PadType::ThroughHole,
 		shape: PadShape::Rect,
 		at: Position {
@@ -346,16 +345,16 @@ test_case! {
 
 test_case! {
 	name: pad_with_oval_drill,
-	input: r#"(pad 1 thru-hole rect (at 0 0) (size 1.27 1.27) (drill oval 0.635 0.847) (layers "F.Cu"))"#,
+	input: r#"(pad "1" thru-hole rect (at 0 0) (size 1.27 1.27) (drill oval 0.635 0.847) (layers "F.Cu"))"#,
 	pretty: indoc!(r#"
-		(pad 1 thru-hole rect
+		(pad "1" thru-hole rect
 		  (at 0 0)
 		  (size 1.27 1.27)
 		  (drill oval 0.635 0.847)
 		  (layers "F.Cu"))
 	"#),
 	value: Pad {
-		index: 1.into(),
+		index: "1".into(),
 		ty: PadType::ThroughHole,
 		shape: PadShape::Rect,
 		at: Position {
@@ -395,10 +394,10 @@ test_case! {
 
 test_case! {
 	name: footprint_with_one_pad,
-	input: r#"(footprint "Capacitor_SMD:C_0402" (pad 1 smd rect (at 0 0) (size 1.27 1.27) (layers "F.Cu")))"#,
+	input: r#"(footprint "Capacitor_SMD:C_0402" (pad "1" smd rect (at 0 0) (size 1.27 1.27) (layers "F.Cu")))"#,
 	pretty: indoc!(r#"
 		(footprint "Capacitor_SMD:C_0402"
-		  (pad 1 smd rect
+		  (pad "1" smd rect
 		    (at 0 0)
 		    (size 1.27 1.27)
 		    (layers "F.Cu")))
@@ -406,7 +405,7 @@ test_case! {
 	value: Footprint {
 		library_link: "Capacitor_SMD:C_0402".to_owned(),
 		pads: vec![Pad {
-			index: 1.into(),
+			index: "1".into(),
 			ty: PadType::Smd,
 			shape: PadShape::Rect,
 			at: Position {
@@ -423,14 +422,14 @@ test_case! {
 
 test_case! {
 	name: footprint_with_two_pads,
-	input: r#"(footprint "Capacitor_SMD:C_0402" (pad 1 smd rect (at 0 0) (size 1.27 1.27) (layers "F.Cu")) (pad 2 smd rect (at 2.54 0) (size 1.27 1.27) (layers "F.Cu")))"#,
+	input: r#"(footprint "Capacitor_SMD:C_0402" (pad "1" smd rect (at 0 0) (size 1.27 1.27) (layers "F.Cu")) (pad "2" smd rect (at 2.54 0) (size 1.27 1.27) (layers "F.Cu")))"#,
 	pretty: indoc!(r#"
 		(footprint "Capacitor_SMD:C_0402"
-		  (pad 1 smd rect
+		  (pad "1" smd rect
 		    (at 0 0)
 		    (size 1.27 1.27)
 		    (layers "F.Cu"))
-		  (pad 2 smd rect
+		  (pad "2" smd rect
 		    (at 2.54 0)
 		    (size 1.27 1.27)
 		    (layers "F.Cu")))
@@ -439,7 +438,7 @@ test_case! {
 		library_link: "Capacitor_SMD:C_0402".to_owned(),
 		pads: vec![
 			Pad {
-				index: 1.into(),
+				index: "1".into(),
 				ty: PadType::Smd,
 				shape: PadShape::Rect,
 				at: Position {
@@ -452,7 +451,7 @@ test_case! {
 				layers: vec!["F.Cu".to_owned()]
 			},
 			Pad {
-				index: 2.into(),
+				index: "2".into(),
 				ty: PadType::Smd,
 				shape: PadShape::Rect,
 				at: Position {
