@@ -1,4 +1,4 @@
-{%- set pages = "https://kicad-rs.github.io/serde_sexpr" -%}
+{%- set pages = "https://kicad-rs.github.io/" ~ crate|urlencode -%}
 
 <br/>
 <div>
@@ -12,7 +12,7 @@
 		<img alt="{{crate}} on crates.io" src="https://img.shields.io/crates/v/{{crate|urlencode}}.svg"/>
 	</a>
 	<a href="https://docs.rs/{{crate|urlencode}}">
-		<img alt="{{crate}} on docs.rs" src="https://docs.rs/{{crate|urlencode}}/badge"/>
+		<img alt="{{crate}} on docs.rs" src="https://docs.rs/{{crate|urlencode}}/badge.svg"/>
 	</a>
 	<a href="{{pages}}/doc/{{crate|urlencode}}/index.html">
 		<img alt="rustdoc of main branch" src="https://img.shields.io/badge/docs-main-blue.svg"/>
