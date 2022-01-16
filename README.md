@@ -3,8 +3,8 @@
 	<a href="https://github.com/kicad-rs/serde_kicad_sexpr/actions/workflows/rust.yml">
 		<img alt="build status" src="https://github.com/kicad-rs/serde_kicad_sexpr/actions/workflows/rust.yml/badge.svg"/>
 	</a>
-	<a href="https%3A//kicad-rs.github.io/serde_kicad_sexpr/tarpaulin-report.html">
-		<img alt="coverage report" src="https%3A//kicad-rs.github.io/serde_kicad_sexpr/coverage.svg"/>
+	<a href="https://kicad-rs.github.io/serde_kicad_sexpr/tarpaulin-report.html">
+		<img alt="coverage report" src="https://kicad-rs.github.io/serde_kicad_sexpr/coverage.svg"/>
 	</a>
 	<a href="https://crates.io/crates/serde_kicad_sexpr">
 		<img alt="serde_kicad_sexpr on crates.io" src="https://img.shields.io/crates/v/serde_kicad_sexpr.svg"/>
@@ -12,7 +12,7 @@
 	<a href="https://docs.rs/serde_kicad_sexpr">
 		<img alt="serde_kicad_sexpr on docs.rs" src="https://docs.rs/serde_kicad_sexpr/badge.svg"/>
 	</a>
-	<a href="https%3A//kicad-rs.github.io/serde_kicad_sexpr/doc/serde_kicad_sexpr/index.html">
+	<a href="https://kicad-rs.github.io/serde_kicad_sexpr/doc/serde_kicad_sexpr/index.html">
 		<img alt="rustdoc of main branch" src="https://img.shields.io/badge/docs-main-blue.svg"/>
 	</a>
 </div>
